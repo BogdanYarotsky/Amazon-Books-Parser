@@ -2,23 +2,57 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
+	"golang.org/x/net/html"
 	"log"
 	"net/http"
+	"regexp"
 	"strings"
-
-	"golang.org/x/net/html"
 )
 
 type Book struct {
-	Href    string
+	Index   int
 	Title   string
 	Author  string
-	Rating  float64
-	Reviews int32
+	Rating  float32
+	Reviews int
 }
 
+const spanID = "MAIN-SEARCH_RESULTS-.*"
+
 func FindAmazonBooks(url string) ([]Book, error) {
+
+	root, err := getRootNode(url)
+	if err != nil {
+		return nil, err
+	}
+
+	// step 1 - get a slice of "root" nodes - spans with all necessary info - done
+	products, err := getProductNodes(root)
+	if err != nil {
+		return nil, err
+	}
+	//printNodes(products)
+
+	//printProductTree(products[0])
+
+	// step 2 - traverse spans for very specific info
+	var books []*Book
+	for i, product := range products {
+		book := &Book{}
+		extractBookInfo(book, product)
+		book.Index = i
+		books = append(books, book)
+	}
+
+	// debug
+	printBooks(books)
+	// return books, nil
+	return nil, nil
+
+}
+
+// All starts here
+func getRootNode(url string) (*html.Node, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -32,82 +66,107 @@ func FindAmazonBooks(url string) ([]Book, error) {
 		return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
 	}
 
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatal(err)
-	}
-	bodyString := string(bodyBytes)
-	fmt.Print(bodyString)
+	//// debug print
+	//bodyBytes, err := ioutil.ReadAll(resp.Body)
+	//if err != nil {
+	//	log.Fatal(err)
+	//}
+	//bodyString := string(bodyBytes)
+	//fmt.Print(bodyString)
 
-	root, err := html.Parse(resp.Body)
-	if err != nil {
-		return nil, err
-	}
+	return html.Parse(resp.Body)
+}
 
-	var links []Book
-	var rec func(*html.Node)
-	rec = func(n *html.Node) {
-		if n.Type == html.ElementNode && n.Data == "h2" {
-
-			var text string
-			if n.FirstChild != nil {
-				text = grabText(n.FirstChild)
+// It just works
+func getProductNodes(node *html.Node) ([]*html.Node, error) {
+	var products []*html.Node
+	if node.Type == html.ElementNode && node.Data == "span" {
+		for _, a := range node.Attr {
+			match, _ := regexp.MatchString(spanID, a.Val)
+			if match {
+				products = append(products, node)
 			}
-			links = append(links, Book{"h2", text, "", 0, 0})
-
-		}
-		if n.FirstChild != nil {
-			rec(n.FirstChild)
-		}
-		if n.NextSibling != nil {
-			rec(n.NextSibling)
 		}
 	}
-	rec(root)
 
-	return links, nil
-
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		nodes, _ := getProductNodes(c)
+		products = append(products, nodes...)
+	}
+	return products, nil
 }
 
-func grabText(n *html.Node) string {
-	var sb strings.Builder
-	var rec func(*html.Node)
-	rec = func(n *html.Node) {
-		if n.Type == html.TextNode {
-			s := n.Data
-			sb.WriteString(s)
-		}
-		if n.FirstChild != nil {
-			rec(n.FirstChild)
-		}
-		if n.NextSibling != nil {
-			rec(n.NextSibling)
-		}
+// For debug
+func printNodes(nodes []*html.Node) {
+	for _, node := range nodes {
+		fmt.Println(node)
 	}
-	rec(n)
-
-	return strings.Join(strings.Fields(sb.String()), " ")
 }
 
-// LinksString returns reasonable string listing links
-func LinksString(links []Book) string {
-	var maxW int
-	for _, l := range links {
-		if len(l.Href) > maxW {
-			maxW = len(l.Href)
-		}
-	}
-	maxW++
+//for debug
+func printProductTree(n *html.Node) {
+	fmt.Println(n)
 
-	var sb strings.Builder
-	for _, l := range links {
-		sb.WriteString(l.Href)
-		for i := 0; i < maxW-len(l.Href); i++ {
-			sb.WriteRune(' ')
-		}
-		sb.WriteString(l.Title)
-		sb.WriteRune('\n')
+	for child := n.FirstChild; child != nil; child = child.NextSibling {
+		printProductTree(child)
+	}
+}
+
+// for debug
+func printBooks(books []*Book) {
+	for _, book := range books {
+		fmt.Println("#", book.Index)
+		fmt.Println("Title: ", book.Title)
+		fmt.Println("Author: ", book.Author)
+		fmt.Println("Average rating: ", book.Rating)
+		fmt.Println("Total reviews: ", book.Reviews)
+		fmt.Println("====")
+	}
+}
+
+// the parsing itself
+func extractBookInfo(book *Book, product *html.Node) {
+	fmt.Println("Start: ", book)
+
+	if t := getTitle(product); t != "" {
+		fmt.Println("Got title!: ", t)
+		book.Title = t
 	}
 
-	return sb.String()
+	//book.Author = getAuthor() // check the current node for author name
+	//book.Rating = getRating()
+	//book.Reviews = getReviews() // check the current node for # reviews
+
+	for child := product.FirstChild; child != nil; child = child.NextSibling {
+		extractBookInfo(book, child)
+	}
+
+	fmt.Println("Finish: ", book)
+}
+
+// only testing and returning string if all is ok
+func getTitle(n *html.Node) string {
+
+	if n.Type == html.ElementNode && n.Data == "h2" {
+		fmt.Println("I've found the header!")
+		return getText(n)
+	}
+
+	return ""
+}
+
+func getText(n *html.Node) string {
+	fmt.Println("Trying to get header text")
+	var text string
+	if n.Type == html.TextNode {
+		fmt.Println(n.Data)
+		return n.Data
+	}
+	for c := n.FirstChild; c != nil; c = c.NextSibling {
+		text += getText(c)
+	}
+
+	result := strings.Trim(text, "\n")
+	fmt.Println("Final result: ", result)
+	return result
 }
