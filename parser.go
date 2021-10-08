@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -10,11 +11,14 @@ import (
 )
 
 type Book struct {
-	Href  string
-	Title string
+	Href    string
+	Title   string
+	Author  string
+	Rating  float64
+	Reviews int32
 }
 
-func FindH2(url string) ([]Book, error) {
+func FindAmazonBooks(url string) ([]Book, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -27,6 +31,13 @@ func FindH2(url string) ([]Book, error) {
 
 		return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
 	}
+
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatal(err)
+	}
+	bodyString := string(bodyBytes)
+	fmt.Print(bodyString)
 
 	root, err := html.Parse(resp.Body)
 	if err != nil {
@@ -42,7 +53,7 @@ func FindH2(url string) ([]Book, error) {
 			if n.FirstChild != nil {
 				text = grabText(n.FirstChild)
 			}
-			links = append(links, Book{"h2", text})
+			links = append(links, Book{"h2", text, "", 0, 0})
 
 		}
 		if n.FirstChild != nil {
