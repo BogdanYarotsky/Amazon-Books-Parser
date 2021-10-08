@@ -38,9 +38,8 @@ func FindAmazonBooks(url string) ([]Book, error) {
 	// step 2 - traverse spans for very specific info
 	var books []*Book
 	for i, product := range products {
-		book := &Book{}
+		book := &Book{Index: i}
 		extractBookInfo(book, product)
-		book.Index = i
 		books = append(books, book)
 	}
 
