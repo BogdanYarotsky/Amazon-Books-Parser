@@ -132,7 +132,11 @@ func extractBookInfo(book *Book, product *html.Node) {
 		book.Title = t
 	}
 
-	//book.Author = getAuthor() // check the current node for author name
+	if a := getAuthor(product); a != "" {
+		fmt.Println("Got author!: ", a)
+		book.Author = a
+	}
+
 	//book.Rating = getRating()
 	//book.Reviews = getReviews() // check the current node for # reviews
 
@@ -149,6 +153,15 @@ func getTitle(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "h2" {
 		fmt.Println("I've found the header!")
 		return getText(n)
+	}
+
+	return ""
+}
+
+func getAuthor(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "span" && n.FirstChild != nil && n.FirstChild.Data == "by " {
+		fmt.Println("I've found the author!")
+		return getText(n.NextSibling)
 	}
 
 	return ""
