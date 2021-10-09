@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 )
 
@@ -13,7 +14,7 @@ type Book struct {
 	Index   int
 	Title   string
 	Author  string
-	Rating  float32
+	Rating  float64
 	Reviews int
 }
 
@@ -137,7 +138,11 @@ func extractBookInfo(book *Book, product *html.Node) {
 		book.Author = a
 	}
 
-	//book.Rating = getRating()
+	if r := getRating(product); r != -1.0 {
+		book.Rating = r
+	}
+
+	//book.Rating = getRating(product)
 	//book.Reviews = getReviews() // check the current node for # reviews
 
 	for child := product.FirstChild; child != nil; child = child.NextSibling {
@@ -161,10 +166,25 @@ func getTitle(n *html.Node) string {
 func getAuthor(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "span" && n.FirstChild != nil && n.FirstChild.Data == "by " {
 		fmt.Println("I've found the author!")
-		return getText(n.NextSibling)
+		if link := n.NextSibling.FirstChild; link != nil {
+			return link.Data
+		}
 	}
 
 	return ""
+}
+
+func getRating(n *html.Node) float64 {
+	if n.Type == html.TextNode {
+		match, _ := regexp.MatchString("... out of . stars", n.Data)
+		if match {
+			if f, err := strconv.ParseFloat(n.Data[:3], 32); err == nil {
+				return f
+			}
+		}
+	}
+
+	return -1.0
 }
 
 func getText(n *html.Node) string {
