@@ -120,6 +120,7 @@ func printProductTree(n *html.Node) {
 func printBooks(books []*Book) {
 	for _, book := range books {
 		fmt.Println("#", book.Index)
+		fmt.Println("Image: ", book.ImgURL)
 		fmt.Println("Title: ", book.Title)
 		fmt.Println("Author: ", book.Author)
 		fmt.Printf("Average rating: %.1f\n", book.Rating)
@@ -132,20 +133,20 @@ func printBooks(books []*Book) {
 func extractBookInfo(book *Book, product *html.Node) {
 	fmt.Println("Start: ", book)
 
+	if img, err := getImage(product); err == nil {
+		book.ImgURL = img
+	}
 	if t, err := getTitle(product); err == nil {
 		fmt.Println("Got title!: ", t)
 		book.Title = t
 	}
-
 	if a, err := getAuthor(product); err == nil {
 		fmt.Println("Got author!: ", a)
 		book.Author = a
 	}
-
 	if r, err := getRating(product); err == nil {
 		book.Rating = r
 	}
-
 	if rvw, err := getReviews(product); err == nil {
 		book.Reviews = rvw
 	}
@@ -160,9 +161,28 @@ func extractBookInfo(book *Book, product *html.Node) {
 	fmt.Println("Finish: ", book)
 }
 
+func getImage(n *html.Node) (string, error) {
+	if n.Type == html.ElementNode && n.Data == "img" {
+		found := false
+		for _, attr := range n.Attr {
+			if (attr.Key == "class") && (attr.Val == "s-image") {
+				found = true
+			}
+		}
+		if found {
+			for _, attr2 := range n.Attr {
+				if attr2.Key == "src" {
+					return attr2.Val, nil
+				}
+			}
+		}
+	}
+
+	return "", errors.New("Didn't find the image link this time")
+}
+
 // only testing and returning string if all is ok
 func getTitle(n *html.Node) (string, error) {
-
 	if n.Type == html.ElementNode && n.Data == "h2" {
 		fmt.Println("I've found the header!")
 		return getText(n), nil
@@ -204,7 +224,6 @@ func getReviews(n *html.Node) (int, error) {
 				return strconv.Atoi(num)
 			}
 		}
-
 	}
 	return 0, errors.New("No reviews for this node")
 }
