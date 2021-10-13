@@ -12,16 +12,16 @@ import (
 )
 
 type Book struct {
-	Index   int
-	Title   string
-	Author  string
-	Rating  float64
-	Reviews int
+	Index   int     // done
+	Title   string  // done
+	Author  string  // done
+	Rating  float64 // done
+	Reviews int     // done
 
-	ImgURL     string
-	BookURL    string
-	AuthorURL  string
-	ReviewsURL string
+	ImgURL     string // done
+	BookURL    string // in progress
+	AuthorURL  string // to do
+	ReviewsURL string // to do
 }
 
 const spanID = "MAIN-SEARCH_RESULTS-.*"
@@ -136,29 +136,31 @@ func extractBookInfo(book *Book, product *html.Node) {
 	if img, err := getImage(product); err == nil {
 		book.ImgURL = img
 	}
-	if t, err := getTitle(product); err == nil {
-		fmt.Println("Got title!: ", t)
+	if t, err := getTitleAndLink(product); err == nil {
 		book.Title = t
 	}
-	if a, err := getAuthor(product); err == nil {
-		fmt.Println("Got author!: ", a)
-		book.Author = a
+	if link, err := getLink(product); err == nil {
+		book.BookURL = link
 	}
-	if r, err := getRating(product); err == nil {
-		book.Rating = r
+	if auth, err := getAuthor(product); err == nil {
+		book.Author = auth
+	}
+	if rtn, err := getRating(product); err == nil {
+		book.Rating = rtn
 	}
 	if rvw, err := getReviews(product); err == nil {
 		book.Reviews = rvw
 	}
-
-	//book.Rating = getRating(product)
-	//book.Reviews = getReviews() // check the current node for # reviews
 
 	for child := product.FirstChild; child != nil; child = child.NextSibling {
 		extractBookInfo(book, child)
 	}
 
 	fmt.Println("Finish: ", book)
+}
+
+func getLink(n *html.Node) (string, error) {
+
 }
 
 func getImage(n *html.Node) (string, error) {
@@ -182,13 +184,13 @@ func getImage(n *html.Node) (string, error) {
 }
 
 // only testing and returning string if all is ok
-func getTitle(n *html.Node) (string, error) {
+func getTitleAndLink(n *html.Node) (string, string, error) {
 	if n.Type == html.ElementNode && n.Data == "h2" {
 		fmt.Println("I've found the header!")
-		return getText(n), nil
+		return getText(n), getLink(n), nil
 	}
 
-	return "", errors.New("No title in this node")
+	return "", "", errors.New("No title or link in this node")
 }
 
 func getAuthor(n *html.Node) (string, error) {
