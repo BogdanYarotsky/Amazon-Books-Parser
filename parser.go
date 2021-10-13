@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"golang.org/x/net/html"
 	"log"
@@ -16,12 +17,16 @@ type Book struct {
 	Author  string
 	Rating  float64
 	Reviews int
+
+	ImgURL     string
+	BookURL    string
+	AuthorURL  string
+	ReviewsURL string
 }
 
 const spanID = "MAIN-SEARCH_RESULTS-.*"
 
 func FindAmazonBooks(url string) ([]Book, error) {
-
 	root, err := getRootNode(url)
 	if err != nil {
 		return nil, err
@@ -48,7 +53,6 @@ func FindAmazonBooks(url string) ([]Book, error) {
 	printBooks(books)
 	// return books, nil
 	return nil, nil
-
 }
 
 // All starts here
@@ -118,7 +122,7 @@ func printBooks(books []*Book) {
 		fmt.Println("#", book.Index)
 		fmt.Println("Title: ", book.Title)
 		fmt.Println("Author: ", book.Author)
-		fmt.Println("Average rating: ", book.Rating)
+		fmt.Printf("Average rating: %.1f\n", book.Rating)
 		fmt.Println("Total reviews: ", book.Reviews)
 		fmt.Println("====")
 	}
@@ -128,18 +132,22 @@ func printBooks(books []*Book) {
 func extractBookInfo(book *Book, product *html.Node) {
 	fmt.Println("Start: ", book)
 
-	if t := getTitle(product); t != "" {
+	if t, err := getTitle(product); err == nil {
 		fmt.Println("Got title!: ", t)
 		book.Title = t
 	}
 
-	if a := getAuthor(product); a != "" {
+	if a, err := getAuthor(product); err == nil {
 		fmt.Println("Got author!: ", a)
 		book.Author = a
 	}
 
-	if r := getRating(product); r != -1.0 {
+	if r, err := getRating(product); err == nil {
 		book.Rating = r
+	}
+
+	if rvw, err := getReviews(product); err == nil {
+		book.Reviews = rvw
 	}
 
 	//book.Rating = getRating(product)
@@ -153,38 +161,52 @@ func extractBookInfo(book *Book, product *html.Node) {
 }
 
 // only testing and returning string if all is ok
-func getTitle(n *html.Node) string {
+func getTitle(n *html.Node) (string, error) {
 
 	if n.Type == html.ElementNode && n.Data == "h2" {
 		fmt.Println("I've found the header!")
-		return getText(n)
+		return getText(n), nil
 	}
 
-	return ""
+	return "", errors.New("No title in this node")
 }
 
-func getAuthor(n *html.Node) string {
+func getAuthor(n *html.Node) (string, error) {
 	if n.Type == html.ElementNode && n.Data == "span" && n.FirstChild != nil && n.FirstChild.Data == "by " {
 		fmt.Println("I've found the author!")
 		if link := n.NextSibling.FirstChild; link != nil {
-			return link.Data
+			return link.Data, nil
 		}
 	}
 
-	return ""
+	return "", errors.New("No author in this node")
 }
 
-func getRating(n *html.Node) float64 {
+func getRating(n *html.Node) (float64, error) {
 	if n.Type == html.TextNode {
 		match, _ := regexp.MatchString("... out of . stars", n.Data)
 		if match {
-			if f, err := strconv.ParseFloat(n.Data[:3], 32); err == nil {
-				return f
-			}
+			return strconv.ParseFloat(n.Data[:3], 32)
 		}
 	}
 
-	return -1.0
+	return 0.0, errors.New("No rating in this node")
+}
+
+func getReviews(n *html.Node) (int, error) {
+	if n.Type == html.ElementNode && n.Data == "a" {
+		for _, attr := range n.Attr {
+			if attr.Key == "href" && strings.Contains(attr.Val, "#customerReviews") {
+				num := getText(n)
+				num = strings.ReplaceAll(num, ",", "")
+				num = strings.TrimSpace(num)
+				fmt.Println("Number string:", num)
+				return strconv.Atoi(num)
+			}
+		}
+
+	}
+	return 0, errors.New("No reviews for this node")
 }
 
 func getText(n *html.Node) string {
