@@ -7,12 +7,12 @@ import (
 	"log"
 	"net/http"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
 
 type Book struct {
-	Index   int     // done
 	Title   string  // done
 	Author  string  // done
 	Rating  float64 // done
@@ -20,10 +20,8 @@ type Book struct {
 
 	ImgURL     string // done
 	BookURL    string // done
-	ReviewsURL string // to do
+	ReviewsURL string // done
 }
-
-const spanID = "MAIN-SEARCH_RESULTS-.*"
 
 func FindAmazonBooks(url string) ([]Book, error) {
 	root, err := getRootNode(url)
@@ -31,26 +29,22 @@ func FindAmazonBooks(url string) ([]Book, error) {
 		return nil, err
 	}
 
-	// step 1 - get a slice of "root" nodes - spans with all necessary info - done
-	products, err := getProductNodes(root)
+	// step 0 - get first product node
+	results, err := getResultsNode(root)
 	if err != nil {
 		return nil, err
 	}
-	//printNodes(products)
 
-	//printProductTree(products[0])
-
-	// step 2 - traverse spans for very specific info
-	var books []*Book
-	for i, product := range products {
-		book := &Book{Index: i}
-		extractBookInfo(book, product)
-		books = append(books, book)
+	books, err := getBooksInfo(results)
+	if err != nil {
+		return nil, err
 	}
 
-	// debug
+	sort.Slice(books, func(i, j int) bool {
+		return books[i].Reviews < books[j].Reviews
+	})
+
 	printBooks(books)
-	// return books, nil
 	return nil, nil
 }
 
@@ -72,29 +66,43 @@ func getRootNode(url string) (*html.Node, error) {
 	return html.Parse(resp.Body)
 }
 
-// It just works
-func getProductNodes(node *html.Node) ([]*html.Node, error) {
-	var products []*html.Node
-	if node.Type == html.ElementNode && node.Data == "span" {
+func getResultsNode(node *html.Node) (*html.Node, error) {
+	if node.Type == html.ElementNode && node.Data == "div" {
 		for _, a := range node.Attr {
-			match, _ := regexp.MatchString(spanID, a.Val)
-			if match {
-				products = append(products, node)
+			if a.Key == "class" && a.Val == "s-main-slot s-result-list s-search-results sg-row" {
+				return node, nil
 			}
 		}
 	}
 
+	//dfs
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		nodes, _ := getProductNodes(c)
-		products = append(products, nodes...)
+		if n, err := getResultsNode(c); err == nil {
+			return n, nil
+		}
 	}
-	return products, nil
+
+	return nil, errors.New("product node not found")
 }
 
-// for debug
+func getBooksInfo(node *html.Node) ([]*Book, error) {
+	var books []*Book
+
+	// loop through children
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		book := &Book{}
+		extractBookInfo(book, c)
+		if book.BookURL != "" {
+			books = append(books, book)
+		}
+	}
+
+	return books, nil
+}
+
 func printBooks(books []*Book) {
-	for _, book := range books {
-		fmt.Println("#", book.Index)
+	for i, book := range books {
+		fmt.Println("#", i)
 		fmt.Println("Image: ", book.ImgURL)
 		fmt.Println("Title: ", book.Title)
 		fmt.Println("Link: ", book.BookURL)
@@ -108,8 +116,6 @@ func printBooks(books []*Book) {
 
 // the parsing itself
 func extractBookInfo(book *Book, product *html.Node) {
-	fmt.Println("Start: ", book)
-
 	if img, err := getImage(product); err == nil {
 		book.ImgURL = img
 	}
@@ -131,8 +137,6 @@ func extractBookInfo(book *Book, product *html.Node) {
 	for child := product.FirstChild; child != nil; child = child.NextSibling {
 		extractBookInfo(book, child)
 	}
-
-	fmt.Println("Finish: ", book)
 }
 
 func getImage(n *html.Node) (string, error) {
@@ -157,7 +161,6 @@ func getImage(n *html.Node) (string, error) {
 // only testing and returning string if all is ok
 func getTitleAndLink(n *html.Node) (string, string, error) {
 	if n.Type == html.ElementNode && n.Data == "h2" {
-		fmt.Println("I've found the header!")
 		return getText(n), getLink(n.FirstChild), nil
 	}
 
@@ -166,7 +169,6 @@ func getTitleAndLink(n *html.Node) (string, string, error) {
 
 func getAuthor(n *html.Node) (string, error) {
 	if n.Type == html.ElementNode && n.Data == "span" && n.FirstChild != nil && n.FirstChild.Data == "by " {
-		fmt.Println("I've found the author!")
 		if link := n.NextSibling.FirstChild; link != nil {
 			return link.Data, nil
 		}
@@ -206,7 +208,6 @@ func getReviews(n *html.Node) (int, string, error) {
 func getText(n *html.Node) string {
 	var text string
 	if n.Type == html.TextNode {
-		fmt.Println(n.Data)
 		return n.Data
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
