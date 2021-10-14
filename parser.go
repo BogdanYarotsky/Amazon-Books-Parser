@@ -19,8 +19,7 @@ type Book struct {
 	Reviews int     // done
 
 	ImgURL     string // done
-	BookURL    string // in progress
-	AuthorURL  string // to do
+	BookURL    string // done
 	ReviewsURL string // to do
 }
 
@@ -70,14 +69,6 @@ func getRootNode(url string) (*html.Node, error) {
 		return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
 	}
 
-	//// debug print
-	//bodyBytes, err := ioutil.ReadAll(resp.Body)
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//bodyString := string(bodyBytes)
-	//fmt.Print(bodyString)
-
 	return html.Parse(resp.Body)
 }
 
@@ -100,31 +91,17 @@ func getProductNodes(node *html.Node) ([]*html.Node, error) {
 	return products, nil
 }
 
-// For debug
-func printNodes(nodes []*html.Node) {
-	for _, node := range nodes {
-		fmt.Println(node)
-	}
-}
-
-//for debug
-func printProductTree(n *html.Node) {
-	fmt.Println(n)
-
-	for child := n.FirstChild; child != nil; child = child.NextSibling {
-		printProductTree(child)
-	}
-}
-
 // for debug
 func printBooks(books []*Book) {
 	for _, book := range books {
 		fmt.Println("#", book.Index)
 		fmt.Println("Image: ", book.ImgURL)
 		fmt.Println("Title: ", book.Title)
+		fmt.Println("Link: ", book.BookURL)
 		fmt.Println("Author: ", book.Author)
 		fmt.Printf("Average rating: %.1f\n", book.Rating)
 		fmt.Println("Total reviews: ", book.Reviews)
+		fmt.Println("Browse reviews: ", book.ReviewsURL)
 		fmt.Println("====")
 	}
 }
@@ -136,10 +113,8 @@ func extractBookInfo(book *Book, product *html.Node) {
 	if img, err := getImage(product); err == nil {
 		book.ImgURL = img
 	}
-	if t, err := getTitleAndLink(product); err == nil {
-		book.Title = t
-	}
-	if link, err := getLink(product); err == nil {
+	if name, link, err := getTitleAndLink(product); err == nil {
+		book.Title = name
 		book.BookURL = link
 	}
 	if auth, err := getAuthor(product); err == nil {
@@ -148,8 +123,9 @@ func extractBookInfo(book *Book, product *html.Node) {
 	if rtn, err := getRating(product); err == nil {
 		book.Rating = rtn
 	}
-	if rvw, err := getReviews(product); err == nil {
-		book.Reviews = rvw
+	if num, link, err := getReviews(product); err == nil {
+		book.Reviews = num
+		book.ReviewsURL = link
 	}
 
 	for child := product.FirstChild; child != nil; child = child.NextSibling {
@@ -157,10 +133,6 @@ func extractBookInfo(book *Book, product *html.Node) {
 	}
 
 	fmt.Println("Finish: ", book)
-}
-
-func getLink(n *html.Node) (string, error) {
-
 }
 
 func getImage(n *html.Node) (string, error) {
@@ -179,18 +151,17 @@ func getImage(n *html.Node) (string, error) {
 			}
 		}
 	}
-
-	return "", errors.New("Didn't find the image link this time")
+	return "", errors.New("didn't find the image link this time")
 }
 
 // only testing and returning string if all is ok
 func getTitleAndLink(n *html.Node) (string, string, error) {
 	if n.Type == html.ElementNode && n.Data == "h2" {
 		fmt.Println("I've found the header!")
-		return getText(n), getLink(n), nil
+		return getText(n), getLink(n.FirstChild), nil
 	}
 
-	return "", "", errors.New("No title or link in this node")
+	return "", "", errors.New("no title or link in this node")
 }
 
 func getAuthor(n *html.Node) (string, error) {
@@ -201,7 +172,7 @@ func getAuthor(n *html.Node) (string, error) {
 		}
 	}
 
-	return "", errors.New("No author in this node")
+	return "", errors.New("no author in this node")
 }
 
 func getRating(n *html.Node) (float64, error) {
@@ -212,26 +183,27 @@ func getRating(n *html.Node) (float64, error) {
 		}
 	}
 
-	return 0.0, errors.New("No rating in this node")
+	return 0.0, errors.New("no rating in this node")
 }
 
-func getReviews(n *html.Node) (int, error) {
+func getReviews(n *html.Node) (int, string, error) {
 	if n.Type == html.ElementNode && n.Data == "a" {
 		for _, attr := range n.Attr {
 			if attr.Key == "href" && strings.Contains(attr.Val, "#customerReviews") {
+				link := "https://amazon.com" + attr.Val
 				num := getText(n)
 				num = strings.ReplaceAll(num, ",", "")
 				num = strings.TrimSpace(num)
-				fmt.Println("Number string:", num)
-				return strconv.Atoi(num)
+				reviews, err := strconv.Atoi(num)
+
+				return reviews, link, err
 			}
 		}
 	}
-	return 0, errors.New("No reviews for this node")
+	return 0, "", errors.New("no reviews for this node")
 }
 
 func getText(n *html.Node) string {
-	fmt.Println("Trying to get header text")
 	var text string
 	if n.Type == html.TextNode {
 		fmt.Println(n.Data)
@@ -241,7 +213,16 @@ func getText(n *html.Node) string {
 		text += getText(c)
 	}
 
-	result := strings.Trim(text, "\n")
-	fmt.Println("Final result: ", result)
-	return result
+	return strings.Trim(text, "\n")
+}
+
+func getLink(n *html.Node) string {
+	if n.Type == html.ElementNode && n.Data == "a" {
+		for _, attr := range n.Attr {
+			if attr.Key == "href" {
+				return "https://amazon.com" + attr.Val
+			}
+		}
+	}
+	return ""
 }
