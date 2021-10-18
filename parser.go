@@ -7,49 +7,57 @@ import (
 	"log"
 	"net/http"
 	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 )
 
-type Book struct {
-	Title   string  // done
-	Author  string  // done
-	Rating  float64 // done
-	Reviews int     // done
+const (
+	resultsClass = "s-main-slot s-result-list s-search-results sg-row"
+	amazonURL    = "https://www.amazon.com"
+)
 
-	ImgURL     string // done
-	BookURL    string // done
-	ReviewsURL string // done
+func FindAmazonBooks(query string) ([]*Book, error) {
+	pages, err := createAmazonURLs(query)
+	if err != nil {
+		return nil, err
+	}
+
+	var booklist []*Book
+	for _, page := range pages {
+		root, err := getAmazonRoot(page)
+		if err != nil {
+			return nil, err
+		}
+
+		results, err := getAmazonResults(root)
+		if err != nil {
+			return nil, err
+		}
+
+		books, err := getAmazonBooks(results)
+		if err != nil {
+			return nil, err
+		}
+
+		booklist = append(booklist, books...)
+	}
+
+	return booklist, nil
 }
 
-func FindAmazonBooks(url string) ([]Book, error) {
-	root, err := getRootNode(url)
-	if err != nil {
-		return nil, err
+func createAmazonURLs(query string) ([]string, error) {
+	searchString := "/Books-Search/s?k=" + strings.ReplaceAll(query, " ", "+")
+	selectTopRated := "&i=stripbooks&rh=n%3A283155%2Cp_72%3A1250221011&dc"
+	var urls []string
+	for i := 1; i <= 2; i++ {
+		pageQuery := fmt.Sprintf("&page=%d&qid=1634582114&rnid=1250219011&ref=sr_pg_%d", i, i)
+		urls = append(urls, amazonURL+searchString+selectTopRated+pageQuery)
 	}
-
-	// step 0 - get first product node
-	results, err := getResultsNode(root)
-	if err != nil {
-		return nil, err
-	}
-
-	books, err := getBooksInfo(results)
-	if err != nil {
-		return nil, err
-	}
-
-	sort.Slice(books, func(i, j int) bool {
-		return books[i].Reviews < books[j].Reviews
-	})
-
-	printBooks(books)
-	return nil, nil
+	return urls, nil
 }
 
 // All starts here
-func getRootNode(url string) (*html.Node, error) {
+func getAmazonRoot(url string) (*html.Node, error) {
 	resp, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -66,10 +74,10 @@ func getRootNode(url string) (*html.Node, error) {
 	return html.Parse(resp.Body)
 }
 
-func getResultsNode(node *html.Node) (*html.Node, error) {
+func getAmazonResults(node *html.Node) (*html.Node, error) {
 	if node.Type == html.ElementNode && node.Data == "div" {
 		for _, a := range node.Attr {
-			if a.Key == "class" && a.Val == "s-main-slot s-result-list s-search-results sg-row" {
+			if a.Key == "class" && a.Val == resultsClass {
 				return node, nil
 			}
 		}
@@ -77,7 +85,7 @@ func getResultsNode(node *html.Node) (*html.Node, error) {
 
 	//dfs
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		if n, err := getResultsNode(c); err == nil {
+		if n, err := getAmazonResults(c); err == nil {
 			return n, nil
 		}
 	}
@@ -85,14 +93,14 @@ func getResultsNode(node *html.Node) (*html.Node, error) {
 	return nil, errors.New("product node not found")
 }
 
-func getBooksInfo(node *html.Node) ([]*Book, error) {
+func getAmazonBooks(node *html.Node) ([]*Book, error) {
 	var books []*Book
 
 	// loop through children
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		book := &Book{}
-		extractBookInfo(book, c)
-		if book.BookURL != "" {
+		book := &Book{Source: "Amazon"}
+		extractAmazonBook(book, c)
+		if book.BookURL != "" && book.Rating != 0.0 {
 			books = append(books, book)
 		}
 	}
@@ -100,22 +108,25 @@ func getBooksInfo(node *html.Node) ([]*Book, error) {
 	return books, nil
 }
 
-func printBooks(books []*Book) {
+func PrintBooks(books ...*Book) {
 	for i, book := range books {
+		fmt.Println()
 		fmt.Println("#", i)
-		fmt.Println("Image: ", book.ImgURL)
-		fmt.Println("Title: ", book.Title)
-		fmt.Println("Link: ", book.BookURL)
-		fmt.Println("Author: ", book.Author)
+		fmt.Println("Image:", book.ImgURL)
+		fmt.Println("Title:", book.Title)
+		fmt.Println("Link:", book.BookURL)
+		fmt.Println("Author:", book.Author)
 		fmt.Printf("Average rating: %.1f\n", book.Rating)
-		fmt.Println("Total reviews: ", book.Reviews)
-		fmt.Println("Browse reviews: ", book.ReviewsURL)
+		fmt.Println("Total reviews:", book.Reviews)
+		fmt.Println("Browse reviews:", book.ReviewsURL)
+		fmt.Println("Book source:", book.Source)
 		fmt.Println("====")
 	}
 }
 
 // the parsing itself
-func extractBookInfo(book *Book, product *html.Node) {
+func extractAmazonBook(book *Book, product *html.Node) {
+	// check current node
 	if img, err := getImage(product); err == nil {
 		book.ImgURL = img
 	}
@@ -134,8 +145,9 @@ func extractBookInfo(book *Book, product *html.Node) {
 		book.ReviewsURL = link
 	}
 
+	// loop through every child node
 	for child := product.FirstChild; child != nil; child = child.NextSibling {
-		extractBookInfo(book, child)
+		extractAmazonBook(book, child)
 	}
 }
 
@@ -192,7 +204,7 @@ func getReviews(n *html.Node) (int, string, error) {
 	if n.Type == html.ElementNode && n.Data == "a" {
 		for _, attr := range n.Attr {
 			if attr.Key == "href" && strings.Contains(attr.Val, "#customerReviews") {
-				link := "https://amazon.com" + attr.Val
+				link := amazonURL + attr.Val
 				num := getText(n)
 				num = strings.ReplaceAll(num, ",", "")
 				num = strings.TrimSpace(num)
@@ -221,7 +233,7 @@ func getLink(n *html.Node) string {
 	if n.Type == html.ElementNode && n.Data == "a" {
 		for _, attr := range n.Attr {
 			if attr.Key == "href" {
-				return "https://amazon.com" + attr.Val
+				return amazonURL + attr.Val
 			}
 		}
 	}
