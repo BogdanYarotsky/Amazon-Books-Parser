@@ -1,19 +1,23 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"golang.org/x/net/html"
+	"io/ioutil"
 	"log"
-	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/chromedp/chromedp"
 )
 
 const (
 	resultsClass = "s-main-slot s-result-list s-search-results sg-row"
 	amazonURL    = "https://www.amazon.com"
+	userAgent    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
 )
 
 func FindAmazonBooks(query string) ([]*Book, error) {
@@ -49,7 +53,7 @@ func createAmazonURLs(query string) ([]string, error) {
 	searchString := "/Books-Search/s?k=" + strings.ReplaceAll(query, " ", "+")
 	selectTopRated := "&i=stripbooks&rh=n%3A283155%2Cp_72%3A1250221011&dc"
 	var urls []string
-	for i := 1; i <= 2; i++ {
+	for i := 1; i <= 1; i++ {
 		pageQuery := fmt.Sprintf("&page=%d&qid=1634582114&rnid=1250219011&ref=sr_pg_%d", i, i)
 		urls = append(urls, amazonURL+searchString+selectTopRated+pageQuery)
 	}
@@ -58,20 +62,50 @@ func createAmazonURLs(query string) ([]string, error) {
 
 // All starts here
 func getAmazonRoot(url string) (*html.Node, error) {
-	resp, err := http.Get(url)
+	//resp, err := http.Get(url)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//log.Printf("Got the http response from %q\n", url)
+	//defer resp.Body.Close()
+	//
+	//if resp.StatusCode != http.StatusOK {
+	//
+	//	return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
+	//}
+
+	o := append(chromedp.DefaultExecAllocatorOptions[:],
+		//... any options here
+		chromedp.UserAgent(userAgent),
+		//chromedp.ProxyServer("http://username:password@proxyserver.com:31280"),
+	)
+
+	cx, cancel := chromedp.NewExecAllocator(context.Background(), o...)
+	defer cancel()
+
+	ctx, cancel := chromedp.NewContext(cx)
+	defer cancel()
+
+	var HTML string
+	if err := chromedp.Run(ctx,
+		chromedp.Navigate(url),
+		chromedp.OuterHTML("body", &HTML, chromedp.ByQuery),
+	); err != nil {
+		log.Fatal(err)
+	}
+
+	resp := strings.NewReader(HTML)
+
+	bodyBytes, err := ioutil.ReadAll(resp)
 	if err != nil {
-		return nil, err
+		log.Fatal(err)
 	}
 
-	log.Printf("Got the http response from %q\n", url)
-	defer resp.Body.Close()
+	bodyString := string(bodyBytes)
+	fmt.Print(bodyString)
 
-	if resp.StatusCode != http.StatusOK {
-
-		return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
-	}
-
-	return html.Parse(resp.Body)
+	return html.Parse(resp)
 }
 
 func getAmazonResults(node *html.Node) (*html.Node, error) {
