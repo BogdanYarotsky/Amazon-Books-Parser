@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"golang.org/x/net/html"
-	"io/ioutil"
 	"log"
 	"regexp"
 	"strconv"
@@ -62,23 +61,8 @@ func createAmazonURLs(query string) ([]string, error) {
 
 // All starts here
 func getAmazonRoot(url string) (*html.Node, error) {
-	//resp, err := http.Get(url)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//log.Printf("Got the http response from %q\n", url)
-	//defer resp.Body.Close()
-	//
-	//if resp.StatusCode != http.StatusOK {
-	//
-	//	return nil, fmt.Errorf("getting %s: %s", url, resp.Status)
-	//}
-
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
-		//... any options here
 		chromedp.UserAgent(userAgent),
-		//chromedp.ProxyServer("http://username:password@proxyserver.com:31280"),
 	)
 
 	cx, cancel := chromedp.NewExecAllocator(context.Background(), o...)
@@ -90,26 +74,18 @@ func getAmazonRoot(url string) (*html.Node, error) {
 	var HTML string
 	if err := chromedp.Run(ctx,
 		chromedp.Navigate(url),
-		chromedp.OuterHTML("body", &HTML, chromedp.ByQuery),
+		chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
 	); err != nil {
 		log.Fatal(err)
 	}
 
 	resp := strings.NewReader(HTML)
-
-	bodyBytes, err := ioutil.ReadAll(resp)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	bodyString := string(bodyBytes)
-	fmt.Print(bodyString)
-
 	return html.Parse(resp)
 }
 
 func getAmazonResults(node *html.Node) (*html.Node, error) {
 	if node.Type == html.ElementNode && node.Data == "div" {
+		fmt.Println("Found a div during parsing!!!", node.Data)
 		for _, a := range node.Attr {
 			if a.Key == "class" && a.Val == resultsClass {
 				return node, nil
@@ -145,7 +121,7 @@ func getAmazonBooks(node *html.Node) ([]*Book, error) {
 func PrintBooks(books ...*Book) {
 	for i, book := range books {
 		fmt.Println()
-		fmt.Println("#", i)
+		fmt.Println("#", i+1)
 		fmt.Println("Image:", book.ImgURL)
 		fmt.Println("Title:", book.Title)
 		fmt.Println("Link:", book.BookURL)
