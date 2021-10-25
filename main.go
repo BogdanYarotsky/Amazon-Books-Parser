@@ -2,7 +2,6 @@ package main
 
 import (
 	"os"
-	"sort"
 )
 
 type Book struct {
@@ -35,31 +34,7 @@ func main() {
 		panic(err)
 	}
 
-	// get rid of book less than 4.4
-	var betterBooks []*Book
-
-	for _, book := range books {
-		if book.Rating > 4.5 {
-			betterBooks = append(betterBooks, book)
-		}
-	}
-
-	// get those with most reviews
-	sort.Slice(betterBooks, func(i, j int) bool {
-		return betterBooks[i].Reviews > betterBooks[j].Reviews
-	})
-
-	top := betterBooks[:10]
-
-	// sort them by rating again, it's reasonable
-	sort.Slice(top, func(i, j int) bool {
-		if top[i].Rating != top[j].Rating {
-			return top[i].Rating > top[j].Rating
-		} else {
-			return top[i].Reviews > top[j].Reviews
-		}
-
-	})
+	top := SortAmazonBooks(books)
 
 	PrintBooks(top...)
 }

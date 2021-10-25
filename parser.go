@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/html"
 	"log"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -25,14 +26,14 @@ func FindAmazonBooks(query string) ([]*Book, error) {
 		return nil, err
 	}
 
-	var booklist []*Book
-	for _, page := range pages {
-		root, err := getAmazonRoot(page)
-		if err != nil {
-			return nil, err
-		}
+	htmls, err := getParsedHTMLs(pages)
+	if err != nil {
+		return nil, err
+	}
 
-		results, err := getAmazonResults(root)
+	var booklist []*Book
+	for _, html := range htmls {
+		results, err := getAmazonResults(html)
 		if err != nil {
 			return nil, err
 		}
@@ -48,11 +49,39 @@ func FindAmazonBooks(query string) ([]*Book, error) {
 	return booklist, nil
 }
 
+func SortAmazonBooks(books []*Book) []*Book {
+	// get rid of book less than 4.4
+	var betterBooks []*Book
+	for _, book := range books {
+		if book.Rating > 4.5 {
+			betterBooks = append(betterBooks, book)
+		}
+	}
+
+	// get those with most reviews
+	sort.Slice(betterBooks, func(i, j int) bool {
+		return betterBooks[i].Reviews > betterBooks[j].Reviews
+	})
+
+	top := betterBooks[:10]
+	// sort them by rating again, it's reasonable
+	sort.Slice(top, func(i, j int) bool {
+		if top[i].Rating != top[j].Rating {
+			return top[i].Rating > top[j].Rating
+		} else {
+			return top[i].Reviews > top[j].Reviews
+		}
+
+	})
+
+	return top
+}
+
 func createAmazonURLs(query string) ([]string, error) {
 	searchString := "/Books-Search/s?k=" + strings.ReplaceAll(query, " ", "+")
 	selectTopRated := "&i=stripbooks&rh=n%3A283155%2Cp_72%3A1250221011&dc"
 	var urls []string
-	for i := 1; i <= 1; i++ {
+	for i := 1; i <= 2; i++ {
 		pageQuery := fmt.Sprintf("&page=%d&qid=1634582114&rnid=1250219011&ref=sr_pg_%d", i, i)
 		urls = append(urls, amazonURL+searchString+selectTopRated+pageQuery)
 	}
@@ -60,7 +89,7 @@ func createAmazonURLs(query string) ([]string, error) {
 }
 
 // All starts here
-func getAmazonRoot(url string) (*html.Node, error) {
+func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
 	)
@@ -71,21 +100,35 @@ func getAmazonRoot(url string) (*html.Node, error) {
 	ctx, cancel := chromedp.NewContext(cx)
 	defer cancel()
 
-	var HTML string
-	if err := chromedp.Run(ctx,
-		chromedp.Navigate(url),
-		chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
-	); err != nil {
-		log.Fatal(err)
+	var roots []*html.Node
+	for _, url := range urls {
+		var HTML string
+		if err := chromedp.Run(ctx,
+			chromedp.Navigate(url),
+			chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
+		); err != nil {
+			log.Fatal(err)
+		}
+
+		resp := strings.NewReader(HTML)
+		root, err := html.Parse(resp)
+		if err != nil {
+			log.Println("Something bad happened during page parsing")
+			return nil, err
+		}
+		roots = append(roots, root)
 	}
 
-	resp := strings.NewReader(HTML)
-	return html.Parse(resp)
+	if len(roots) < 1 {
+		return nil, errors.New("no roots where gathered")
+	} else {
+		return roots, nil
+	}
+
 }
 
 func getAmazonResults(node *html.Node) (*html.Node, error) {
 	if node.Type == html.ElementNode && node.Data == "div" {
-		fmt.Println("Found a div during parsing!!!", node.Data)
 		for _, a := range node.Attr {
 			if a.Key == "class" && a.Val == resultsClass {
 				return node, nil
@@ -122,14 +165,14 @@ func PrintBooks(books ...*Book) {
 	for i, book := range books {
 		fmt.Println()
 		fmt.Println("#", i+1)
-		fmt.Println("Image:", book.ImgURL)
+		//fmt.Println("Image:", book.ImgURL)
 		fmt.Println("Title:", book.Title)
 		fmt.Println("Link:", book.BookURL)
 		fmt.Println("Author:", book.Author)
 		fmt.Printf("Average rating: %.1f\n", book.Rating)
 		fmt.Println("Total reviews:", book.Reviews)
-		fmt.Println("Browse reviews:", book.ReviewsURL)
-		fmt.Println("Book source:", book.Source)
+		//fmt.Println("Browse reviews:", book.ReviewsURL)
+		//fmt.Println("Book source:", book.Source)
 		fmt.Println("====")
 	}
 }
