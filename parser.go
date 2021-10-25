@@ -18,7 +18,89 @@ const (
 	resultsClass = "s-main-slot s-result-list s-search-results sg-row"
 	amazonURL    = "https://www.amazon.com"
 	userAgent    = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+	goodreadsURL = "https://www.goodreads.com/search?q=abraham+lincoln&page=2&search_type=books"
 )
+
+func FindGoodreadsBooks(query string) ([]*Book, error) {
+	pages, err := createGoodreadsURLs(query)
+	if err != nil {
+		return nil, err
+	}
+
+	roots, err := getParsedHTMLs(pages)
+	if err != nil {
+		return nil, err
+	}
+
+	if roots != nil {
+
+	}
+
+	var booklist []*Book
+	for _, root := range roots {
+		results, err := getGoodreadsResults(root)
+		if err != nil {
+			return nil, err
+		}
+
+		books, err := getGoodreadsBooks(results)
+		if err != nil {
+			return nil, err
+		}
+
+		booklist = append(booklist, books...)
+	}
+
+	return booklist, nil
+}
+
+func getGoodreadsBooks(node *html.Node) ([]*Book, error) {
+	var books []*Book
+
+	// loop through children
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		book := &Book{Source: "Goodreads"}
+		extractGoodreadsBook(book, c)
+		books = append(books, book)
+	}
+
+	return books, nil
+}
+
+func extractGoodreadsBook(book *Book, node *html.Node) {
+	if node.Type == html.ElementNode && node.Data == "span" {
+		for _, attr := range node.Attr {
+			if attr.Val == "minirating" {
+				book.Title = getText(node.FirstChild)
+			}
+		}
+	}
+}
+
+func getGoodreadsResults(node *html.Node) (*html.Node, error) {
+	if node.Type == html.ElementNode && node.Data == "tbody" {
+		return node, nil
+	}
+
+	//dfs
+	for c := node.FirstChild; c != nil; c = c.NextSibling {
+		if n, err := getGoodreadsResults(c); err == nil {
+			return n, nil
+		}
+	}
+
+	return nil, errors.New("product node not found")
+}
+
+func createGoodreadsURLs(query string) ([]string, error) {
+	searchString := "https://www.goodreads.com/search?q=" + strings.ReplaceAll(query, " ", "+")
+	var urls []string
+	for i := 1; i <= 1; i++ {
+		pageQuery := fmt.Sprintf("&page=%d&search_type=books", i)
+		urls = append(urls, searchString+pageQuery)
+	}
+	return urls, nil
+}
 
 func FindAmazonBooks(query string) ([]*Book, error) {
 	pages, err := createAmazonURLs(query)
@@ -26,14 +108,14 @@ func FindAmazonBooks(query string) ([]*Book, error) {
 		return nil, err
 	}
 
-	htmls, err := getParsedHTMLs(pages)
+	nodes, err := getParsedHTMLs(pages)
 	if err != nil {
 		return nil, err
 	}
 
 	var booklist []*Book
-	for _, html := range htmls {
-		results, err := getAmazonResults(html)
+	for _, node := range nodes {
+		results, err := getAmazonResults(node)
 		if err != nil {
 			return nil, err
 		}
@@ -62,8 +144,8 @@ func SortAmazonBooks(books []*Book) []*Book {
 	sort.Slice(betterBooks, func(i, j int) bool {
 		return betterBooks[i].Reviews > betterBooks[j].Reviews
 	})
+	top := betterBooks[:15]
 
-	top := betterBooks[:10]
 	// sort them by rating again, it's reasonable
 	sort.Slice(top, func(i, j int) bool {
 		if top[i].Rating != top[j].Rating {
@@ -88,7 +170,7 @@ func createAmazonURLs(query string) ([]string, error) {
 	return urls, nil
 }
 
-// All starts here
+// Creates new Chrome instance - must be invoked once per search query
 func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
@@ -102,6 +184,7 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 
 	var roots []*html.Node
 	for _, url := range urls {
+		fmt.Println(url)
 		var HTML string
 		if err := chromedp.Run(ctx,
 			chromedp.Navigate(url),
@@ -109,6 +192,8 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 		); err != nil {
 			log.Fatal(err)
 		}
+
+		fmt.Print(HTML)
 
 		resp := strings.NewReader(HTML)
 		root, err := html.Parse(resp)

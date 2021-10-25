@@ -17,7 +17,6 @@ type Book struct {
 	Year       int    // to do
 }
 
-// debug
 const sample_query = "python"
 
 func main() {
@@ -29,12 +28,19 @@ func main() {
 		query = sample_query
 	}
 
-	books, err := FindAmazonBooks(query)
+	// Amazon top
+	//amazonBooks, err := FindAmazonBooks(query)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//top := SortAmazonBooks(amazonBooks)
+	//PrintBooks(top...)
+
+	// Goodreads top
+	goodreadsBooks, err := FindGoodreadsBooks(query)
 	if err != nil {
 		panic(err)
 	}
-
-	top := SortAmazonBooks(books)
-
-	PrintBooks(top...)
+	//top = SortGoodreadsBooks(goodreadsBooks)
+	PrintBooks(goodreadsBooks...)
 }
