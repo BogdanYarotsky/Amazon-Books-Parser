@@ -134,7 +134,7 @@ func SortGoodreadsBooks(books []*Book) []*Book {
 	// get rid of book less than 4.4
 	var betterBooks []*Book
 	for _, book := range books {
-		if book.Rating > 3.7 {
+		if book.Rating > 3.7 && book.Reviews != 0 {
 			betterBooks = append(betterBooks, book)
 		}
 	}
@@ -143,9 +143,18 @@ func SortGoodreadsBooks(books []*Book) []*Book {
 	sort.Slice(betterBooks, func(i, j int) bool {
 		return betterBooks[i].Reviews > betterBooks[j].Reviews
 	})
-	top := betterBooks[:12]
 
-	// sort them by rating again, it's reasonable
+	var top []*Book
+	if len(betterBooks) >= 12 {
+		top = betterBooks[:12]
+	} else {
+		top = betterBooks
+	}
+
+	fmt.Println("All was good prior to this moment...")
+	fmt.Println("Total entries after filtering:", len(top))
+
+	//sort them by rating again, it's reasonable
 	sort.Slice(top, func(i, j int) bool {
 		if top[i].Rating != top[j].Rating {
 			return top[i].Rating > top[j].Rating

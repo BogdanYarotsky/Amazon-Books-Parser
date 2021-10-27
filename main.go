@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"os"
 )
 
@@ -29,18 +30,33 @@ func main() {
 	}
 
 	// Amazon top
-	//amazonBooks, err := FindAmazonBooks(query)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//top := SortAmazonBooks(amazonBooks)
-	//PrintBooks(top...)
+	amazonBooks, err := FindAmazonBooks(query)
+	if err != nil {
+		panic(err)
+	}
+	topAmazon := SortAmazonBooks(amazonBooks)
+	PrintBooks(topAmazon...)
 
 	// Goodreads top
 	goodreadsBooks, err := FindGoodreadsBooks(query)
 	if err != nil && goodreadsBooks == nil {
 		panic(err)
 	}
-	top := SortGoodreadsBooks(goodreadsBooks)
-	PrintBooks(top...)
+	PrintBooks(goodreadsBooks...)
+
+	topGoodreads := SortGoodreadsBooks(goodreadsBooks)
+	PrintBooks(topGoodreads...)
+
+	var similar []*Book
+	for _, bookA := range topAmazon {
+		for _, bookG := range topGoodreads {
+			if bookA.Author == bookG.Author {
+				similar = append(similar, bookA)
+			}
+		}
+	}
+
+	fmt.Println("Similar books:")
+	PrintBooks(similar...)
+
 }
