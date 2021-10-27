@@ -29,18 +29,18 @@ func main() {
 	}
 
 	// Amazon top
-	amazonBooks, err := FindAmazonBooks(query)
-	if err != nil {
-		panic(err)
-	}
-	top := SortAmazonBooks(amazonBooks)
-	PrintBooks(top...)
+	//amazonBooks, err := FindAmazonBooks(query)
+	//if err != nil {
+	//	panic(err)
+	//}
+	//top := SortAmazonBooks(amazonBooks)
+	//PrintBooks(top...)
 
 	// Goodreads top
 	goodreadsBooks, err := FindGoodreadsBooks(query)
-	if err != nil {
+	if err != nil && goodreadsBooks == nil {
 		panic(err)
 	}
-	//top = SortGoodreadsBooks(goodreadsBooks)
-	PrintBooks(goodreadsBooks...)
+	top := SortGoodreadsBooks(goodreadsBooks)
+	PrintBooks(top...)
 }

@@ -62,12 +62,12 @@ func PrintBooks(books ...*Book) {
 		fmt.Println("#", i+1)
 		//fmt.Println("Image:", book.ImgURL)
 		fmt.Println("Title:", book.Title)
-		fmt.Println("Link:", book.BookURL)
+		//fmt.Println("Link:", book.BookURL)
 		fmt.Println("Author:", book.Author)
 		fmt.Printf("Average rating: %.1f\n", book.Rating)
 		fmt.Println("Total reviews:", book.Reviews)
 		//fmt.Println("Browse reviews:", book.ReviewsURL)
-		fmt.Println("Book source:", book.Source)
+		//fmt.Println("Book source:", book.Source)
 		fmt.Println("====")
 	}
 }

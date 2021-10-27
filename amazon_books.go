@@ -57,7 +57,7 @@ func SortAmazonBooks(books []*Book) []*Book {
 	sort.Slice(betterBooks, func(i, j int) bool {
 		return betterBooks[i].Reviews > betterBooks[j].Reviews
 	})
-	top := betterBooks[:15]
+	top := betterBooks[:12]
 
 	// sort them by rating again, it's reasonable
 	sort.Slice(top, func(i, j int) bool {
