@@ -21,32 +21,41 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 		chromedp.UserAgent(userAgent),
 	)
 
-	cx, cancel := chromedp.NewExecAllocator(context.Background(), o...)
+	// browser setup
+	browser, cancel := chromedp.NewExecAllocator(context.Background(), o...)
 	defer cancel()
 
-	ctx, cancel := chromedp.NewContext(cx)
+	// start a tab
+	tab1, cancel := chromedp.NewContext(browser)
 	defer cancel()
+	if err := chromedp.Run(tab1); err != nil {
+		log.Fatal(err)
+	}
+	var tabs []context.Context
+	tabs = append(tabs, tab1)
+
+	// start next tabs
+	for i := 0; i < len(urls)-1; i++ {
+		tab, cancel := chromedp.NewContext(tab1)
+		tabs = append(tabs, tab)
+		defer cancel()
+	}
 
 	var roots []*html.Node
-	for _, url := range urls {
-		fmt.Println(url)
-		var HTML string
-		if err := chromedp.Run(ctx,
-			chromedp.Navigate(url),
-			chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
-		); err != nil {
-			log.Fatal(err)
-		}
-		// uncomment to check html response
-		//fmt.Print(HTML)
+	chParsedHTML := make(chan *html.Node)
+	chIsFinished := make(chan bool)
 
-		resp := strings.NewReader(HTML)
-		root, err := html.Parse(resp)
-		if err != nil {
-			log.Println("Something bad happened during page parsing")
-			return nil, err
+	for i, url := range urls {
+		go FetchAndParse(url, tabs[i], chParsedHTML, chIsFinished)
+	}
+
+	for i := 0; i < len(urls); {
+		select {
+		case root := <-chParsedHTML:
+			roots = append(roots, root)
+		case <-chIsFinished:
+			i++
 		}
-		roots = append(roots, root)
 	}
 
 	if len(roots) < 1 {
@@ -54,6 +63,35 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 	} else {
 		return roots, nil
 	}
+}
+
+func FetchAndParse(url string, tab context.Context, chParsedHTML chan *html.Node, chIsFinished chan bool) {
+	fmt.Println(url)
+
+	var HTML string
+	if err := chromedp.Run(tab,
+		chromedp.Navigate(url),
+		chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
+	); err != nil {
+		log.Fatal(err)
+	}
+
+	defer func() {
+		chIsFinished <- true
+	}()
+
+	// uncomment to check html response
+	//fmt.Print(HTML)
+
+	resp := strings.NewReader(HTML)
+	root, err := html.Parse(resp)
+	if err != nil {
+		log.Println("Something bad happened during page parsing")
+		chParsedHTML <- nil
+		return
+	}
+
+	chParsedHTML <- root
 }
 
 func PrintBooks(books ...*Book) {
