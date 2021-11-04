@@ -11,31 +11,20 @@ import (
 
 const goodreadsURL = "https://www.goodreads.com/"
 
-func FindGoodreadsBooks(query string) ([]*Book, error) {
-	pages, err := createGoodreadsURLs(query)
-	if err != nil {
-		return nil, err
-	}
-
-	roots, err := getParsedHTMLs(pages)
-	if err != nil {
-		return nil, err
-	}
-
+func FindGoodreadsBooks(root *html.Node) ([]*Book, error) {
 	var booklist []*Book
-	for _, root := range roots {
-		results, err := getGoodreadsResults(root)
-		if err != nil {
-			return nil, err
-		}
 
-		books, err := getGoodreadsBooks(results)
-		if err != nil {
-			return nil, err
-		}
-
-		booklist = append(booklist, books...)
+	results, err := getGoodreadsResults(root)
+	if err != nil {
+		return nil, err
 	}
+
+	books, err := getGoodreadsBooks(results)
+	if err != nil {
+		return nil, err
+	}
+
+	booklist = append(booklist, books...)
 
 	return booklist, nil
 }
@@ -45,7 +34,7 @@ func getGoodreadsBooks(node *html.Node) ([]*Book, error) {
 	// loop through children
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
 		if c.Type == html.ElementNode && c.Data == "tr" {
-			book := &Book{Source: "Goodreads"}
+			book := &Book{Source: Goodreads}
 			extractGoodreadsBook(book, c)
 			books = append(books, book)
 		}
@@ -121,6 +110,7 @@ func getGoodreadsResults(node *html.Node) (*html.Node, error) {
 }
 
 func createGoodreadsURLs(query string) ([]string, error) {
+	query = strings.ReplaceAll(query, "+", "%2B")
 	searchString := "https://www.goodreads.com/search?q=" + strings.ReplaceAll(query, " ", "+")
 	var urls []string
 	for i := 1; i <= 3; i++ {
@@ -134,7 +124,7 @@ func SortGoodreadsBooks(books []*Book) []*Book {
 	// get rid of book less than 4.4
 	var betterBooks []*Book
 	for _, book := range books {
-		if book.Rating > 3.7 && book.Reviews != 0 {
+		if book.Source == Goodreads && book.Rating > 3.7 && book.Reviews != 0 {
 			betterBooks = append(betterBooks, book)
 		}
 	}
@@ -150,9 +140,6 @@ func SortGoodreadsBooks(books []*Book) []*Book {
 	} else {
 		top = betterBooks
 	}
-
-	fmt.Println("All was good prior to this moment...")
-	fmt.Println("Total entries after filtering:", len(top))
 
 	//sort them by rating again, it's reasonable
 	sort.Slice(top, func(i, j int) bool {

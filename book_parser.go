@@ -6,17 +6,83 @@ import (
 	"fmt"
 	"golang.org/x/net/html"
 	"log"
+	"net/url"
 	"strings"
 
 	"github.com/chromedp/chromedp"
 )
 
+const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+
+// curently supported websites
+type BookSource uint8
+
 const (
-	userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
+	Amazon BookSource = iota
+	Goodreads
 )
 
+type Book struct {
+	Title   string  // done
+	Author  string  // done
+	Rating  float64 // done
+	Reviews int     // done
+
+	ImgURL     string     // done
+	BookURL    string     // done
+	ReviewsURL string     // done
+	Source     BookSource // done
+}
+
+type BookHTML struct {
+	Root   *html.Node
+	Source BookSource
+}
+
+func GetBooks(query string) ([]*Book, error) {
+
+	amazonURLs, err := createAmazonURLs(query)
+	if err != nil {
+		return nil, errors.New("Failed to create Amazon URLs")
+	}
+
+	goodreadsURLs, err := createGoodreadsURLs(query)
+	if err != nil {
+		return nil, errors.New("Failed to create Goodreads URLs")
+	}
+
+	URLs := append(amazonURLs, goodreadsURLs...)
+	HTMLs, err := getParsedHTMLs(URLs)
+	if err != nil {
+		return nil, errors.New("Something bad happened during parsing")
+	}
+
+	var books []*Book
+	for _, HTML := range HTMLs {
+		var items []*Book
+
+		if HTML.Source == Amazon {
+			items, err = FindAmazonBooks(HTML.Root)
+			if err != nil {
+				continue
+			}
+		}
+
+		if HTML.Source == Goodreads {
+			items, err = FindGoodreadsBooks(HTML.Root)
+			if err != nil {
+				continue
+			}
+		}
+
+		books = append(books, items...)
+	}
+
+	return books, nil
+}
+
 // Creates new Chrome instance - must be invoked once per search query
-func getParsedHTMLs(urls []string) ([]*html.Node, error) {
+func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
 	)
@@ -41,8 +107,8 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 		defer cancel()
 	}
 
-	var roots []*html.Node
-	chParsedHTML := make(chan *html.Node)
+	var parsedPages []*BookHTML
+	chParsedHTML := make(chan *BookHTML)
 	chIsFinished := make(chan bool)
 
 	for i, url := range urls {
@@ -52,25 +118,25 @@ func getParsedHTMLs(urls []string) ([]*html.Node, error) {
 	for i := 0; i < len(urls); {
 		select {
 		case root := <-chParsedHTML:
-			roots = append(roots, root)
+			parsedPages = append(parsedPages, root)
 		case <-chIsFinished:
 			i++
 		}
 	}
 
-	if len(roots) < 1 {
+	if len(parsedPages) < 1 {
 		return nil, errors.New("no roots where gathered")
 	} else {
-		return roots, nil
+		return parsedPages, nil
 	}
 }
 
-func FetchAndParse(url string, tab context.Context, chParsedHTML chan *html.Node, chIsFinished chan bool) {
-	fmt.Println(url)
+func FetchAndParse(page string, tab context.Context, chParsedHTML chan *BookHTML, chIsFinished chan bool) {
+	fmt.Println(page)
 
 	var HTML string
 	if err := chromedp.Run(tab,
-		chromedp.Navigate(url),
+		chromedp.Navigate(page),
 		chromedp.OuterHTML("html", &HTML, chromedp.ByQuery),
 	); err != nil {
 		log.Fatal(err)
@@ -91,7 +157,26 @@ func FetchAndParse(url string, tab context.Context, chParsedHTML chan *html.Node
 		return
 	}
 
-	chParsedHTML <- root
+	u, err := url.Parse(page)
+	if err != nil {
+		log.Println("Something bad happened during url parsing")
+		chParsedHTML <- nil
+		return
+	}
+
+	var source BookSource
+	switch u.Host {
+	case "www.amazon.com":
+		source = Amazon
+	case "www.goodreads.com":
+		source = Goodreads
+	default:
+		log.Println("Unknown website for parsing")
+		chParsedHTML <- nil
+		return
+	}
+
+	chParsedHTML <- &BookHTML{root, source}
 }
 
 func PrintBooks(books ...*Book) {

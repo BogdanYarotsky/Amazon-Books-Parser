@@ -15,31 +15,20 @@ const (
 	amazonURL    = "https://www.amazon.com"
 )
 
-func FindAmazonBooks(query string) ([]*Book, error) {
-	pages, err := createAmazonURLs(query)
-	if err != nil {
-		return nil, err
-	}
-
-	nodes, err := getParsedHTMLs(pages)
-	if err != nil {
-		return nil, err
-	}
-
+func FindAmazonBooks(node *html.Node) ([]*Book, error) {
 	var booklist []*Book
-	for _, node := range nodes {
-		results, err := getAmazonResults(node)
-		if err != nil {
-			return nil, err
-		}
 
-		books, err := getAmazonBooks(results)
-		if err != nil {
-			return nil, err
-		}
-
-		booklist = append(booklist, books...)
+	results, err := getAmazonResults(node)
+	if err != nil {
+		return nil, err
 	}
+
+	books, err := getAmazonBooks(results)
+	if err != nil {
+		return nil, err
+	}
+
+	booklist = append(booklist, books...)
 
 	return booklist, nil
 }
@@ -48,7 +37,7 @@ func SortAmazonBooks(books []*Book) []*Book {
 	// get rid of book less than 4.4
 	var betterBooks []*Book
 	for _, book := range books {
-		if book.Rating > 4.5 {
+		if book.Source == Amazon && book.Rating > 4.5 {
 			betterBooks = append(betterBooks, book)
 		}
 	}
@@ -79,6 +68,7 @@ func SortAmazonBooks(books []*Book) []*Book {
 }
 
 func createAmazonURLs(query string) ([]string, error) {
+	query = strings.ReplaceAll(query, "+", "%2B")
 	searchString := "/Books-Search/s?k=" + strings.ReplaceAll(query, " ", "+")
 	selectTopRated := "&i=stripbooks&rh=n%3A283155%2Cp_72%3A1250221011&dc"
 	var urls []string
@@ -113,7 +103,7 @@ func getAmazonBooks(node *html.Node) ([]*Book, error) {
 
 	// loop through children
 	for c := node.FirstChild; c != nil; c = c.NextSibling {
-		book := &Book{Source: "Amazon"}
+		book := &Book{Source: Amazon}
 		extractAmazonBook(book, c)
 		if book.BookURL != "" && book.Rating != 0.0 {
 			books = append(books, book)
