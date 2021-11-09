@@ -1,0 +1,94 @@
+<!-- 
+    
+Source: https://github.com/safiyc/google-homepage
+Made by Safiy Cham
+
+ -->
+
+ <!DOCTYPE html>
+ <html>
+     <head>
+         <meta charset="utf-8">
+         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+         <link rel="stylesheet" href="static/css/style.css" type="text/css">
+         <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.0/umd/popper.min.js"></script>
+         <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/js/bootstrap.min.js"></script>
+         <title>Google By Safiy</title>
+     </head>
+     <body>
+         <div class="content">
+             <nav class="navbar navbar-expand nav_top"> 
+                 <ul class="navbar-nav mr-auto">
+                     <li class="nav-item">
+                         <a class="nav-link about" href="https://www.google.com/intl/en/about/?fg=1&utm_source=google.com&utm_medium=referral&utm_campaign=hp-header" target="_blank">About</a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link store" href="https://store.google.com/?utm_source=hp_header&utm_medium=google_oo&utm_campaign=GS100042" target="_blank">Store</a>
+                     </li>
+                 </ul>
+                 <ul class="navbar-nav">
+                     <li class="nav-item">
+                         <a class="nav-link gmail" href="https://www.google.com/gmail/about/#" target="_blank">Gmail</a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link images" href="https://www.google.com/imghp?hl=en&tab=wi" target="_blank">Images</a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link nav_link_icons" id="nav_link_apps" href="https://www.github.com/safiyc" target="_blank"></a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link nav_link_icons" id="nav_link_bell" href="https://www.github.com/safiyc/Google-Homepage.git" target="_blank"></a>
+                     </li>
+                     <li class="nav-item">
+                         <a class="nav-link" id="nav_link_initials" href="http://www.safiycham.com/" target="_blank"></a>
+                     </li>
+                 </ul>
+             </nav>
+             <section>
+                 <img src="static/images/toppler-logo.png" alt="Toppler" class="toppler_logo">
+                 <div class="search-btns">
+                     <form action="/search" method="get" id="get_results">
+                     <div class="search_bar">
+                         <input type="text" name="q">
+                     </div>
+                     </form>
+                     <br>
+                     <div class="btns_centered">
+                         <button class="btn btn-info" id="btn_search" form="get_results" value="Submit">Find Books</button>
+                     </div>
+                 </div>
+             </section>
+         </div>
+         <footer class="navbar navbar-expand bottom_footer">
+             <ul class="navbar-nav  align-items-end mr-auto">
+                 <li class="nav-item">
+                     <a class="nav-link bottom_links" id="ad_link" href="https://www.google.com/intl/en_us/ads/?subid=ww-ww-et-g-awa-a-g_hpafoot1_1!o2&utm_source=google.com&utm_medium=referral&utm_campaign=google_hpafooter&fg=1" target="_blank">Advertising</a>
+                 </li>
+                 <li class="nav-item">
+                     <a class="nav-link bottom_links" href="https://www.google.com/services/?subid=ww-ww-et-g-awa-a-g_hpbfoot1_1!o2&utm_source=google.com&utm_medium=referral&utm_campaign=google_hpbfooter&fg=1#?modal_active=none" target="_blank">Business</a>
+                 </li>
+             </ul>
+             <ul class="navbar-nav align-items-end">
+                 <li class="nav-item">
+                     <a class="nav-link bottom_links" id="privacy_link" href="https://policies.google.com/privacy?hl=en&gl=us" target="_blank">Privacy</a>
+                 </li>
+                 <li class="nav-item">
+                     <a class="nav-link bottom_links" href="https://policies.google.com/terms?hl=en&gl=us" target="_blank">Terms</a>
+                 </li>
+                 <li class="nav-item dropup">
+                     <a class="nav-link bottom_links" data-toggle="dropdown" id="settings_link" href="#">Settings</a>
+                     <ul class="dropdown-menu dropdown-menu-right">
+                         <li></li><a class="dropdown-item" href="https://www.google.com/preferences?hl=en&fg=1" target="_blank">Search settings</a></li>
+                         <li></li><a class="dropdown-item" href="https://www.google.com/advanced_search?hl=en&fg=1" target="_blank">Advanced search</a></li>
+                         <li></li><a class="dropdown-item" href="https://www.google.com/history/optout?hl=en&fg=1" target="_blank">History</a></li>
+                         <li></li><a class="dropdown-item" href="https://support.google.com/websearch/?visit_id=0-636637421888168725-274978779&hl=en&rd=2#topic=3378866" target="_blank">Search Help</a></li>
+                         <li></li><a class="dropdown-item" href="http://www.safiycham.com/" target="_blank">Send feedback</a></li>
+                     </ul>
+                 </li>    
+             </ul>
+         </footer>
+     </body>
+     <script src="./js/index-scripts.js"></script>
+ </html>
