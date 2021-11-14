@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"golang.org/x/net/html"
 	"log"
 	"net/url"
 	"strings"
+
+	"golang.org/x/net/html"
 
 	"github.com/chromedp/chromedp"
 )
@@ -15,11 +16,11 @@ import (
 const userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/95.0.4638.54 Safari/537.36"
 
 // curently supported websites
-type BookSource uint8
+type BookSource string
 
 const (
-	Amazon BookSource = iota
-	Goodreads
+	Amazon    BookSource = "Amazon"
+	Goodreads BookSource = "Goodreads"
 )
 
 type Book struct {
@@ -43,18 +44,18 @@ func GetBooks(query string) ([]*Book, error) {
 
 	amazonURLs, err := createAmazonURLs(query)
 	if err != nil {
-		return nil, errors.New("Failed to create Amazon URLs")
+		return nil, errors.New("failed to create Amazon URLs")
 	}
 
 	goodreadsURLs, err := createGoodreadsURLs(query)
 	if err != nil {
-		return nil, errors.New("Failed to create Goodreads URLs")
+		return nil, errors.New("failed to create Goodreads URLs")
 	}
 
 	URLs := append(amazonURLs, goodreadsURLs...)
 	HTMLs, err := getParsedHTMLs(URLs)
 	if err != nil {
-		return nil, errors.New("Something bad happened during parsing")
+		return nil, errors.New("something bad happened during parsing")
 	}
 
 	var books []*Book

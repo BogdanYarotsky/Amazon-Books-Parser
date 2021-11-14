@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Toppler Results</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <link rel="stylesheet" href="static/css/style.css" type="text/css">
+</head>
+<body>
+    <!-- <div class="card" style="width: 18rem;">
+        <img class="card-img-top" src="..." alt="Card image cap">
+        <div class="card-body">
+          <h5 class="card-title">Card title</h5>
+          <h6 class="card-subtitle mb-2 text-muted">Card subtitle</h6>
+          <p class="card-text">Some quick example text to build on the card title and make up the bulk of the card's content.</p>
+          <a href="#" class="card-link">Card link</a>
+          <a href="#" class="card-link">Another link</a>
+        </div>
+      </div> -->
+    <div class="result-row">
+        <div class="result-column">
+            {{range .AmazonBooks}}
+            <h6>Title: {{ .Title }}</h6>
+            <h6>Author: {{ .Author }}</h6>
+            <h6>Average rating: {{ printf "%.1f" .Rating }}</h6>
+            <h6>Number of reviews: {{ .Reviews }}</h6>
+            <h6>Image: {{ .ImgURL }}</h6>
+            <h6>Link: {{ .BookURL }}</h6>
+            <h6>Reviews: {{ .ReviewsURL }}</h6>
+            <h6>Source: {{ .Source }}</h6>
+            {{end}}
+        </div>
+        <div class="result-column">
+            {{range .GoodreadsBooks}}
+            <h6>Title: {{ .Title }}</h6>
+            <h6>Author: {{ .Author }}</h6>
+            <h6>Average rating: {{ printf "%.1f" .Rating }}</h6>
+            <h6>Number of reviews: {{ .Reviews }}</h6>
+            <h6>Image: {{ .ImgURL }}</h6>
+            <h6>Link: {{ .BookURL }}</h6>
+            <h6>Reviews: {{ .ReviewsURL }}</h6>
+            <h6>Source: {{ .Source }}</h6>
+            {{end}}
+        </div>
+    </div>
+</body>
+</html>
