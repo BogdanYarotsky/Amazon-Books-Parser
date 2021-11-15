@@ -121,11 +121,11 @@ body {
 input {
     border: none;
     outline: none;
-    width: 100%;
+    width: 92%;
     overflow: hidden;
     white-space: nowrap;
-    /* margin-left: 17px;
-    margin-top: 9px; */
+    margin-left: 17px;
+    margin-top: 9px;
     font-size: 16px;
 }
 
@@ -135,14 +135,13 @@ input {
 }
 
 button {
+    height: 42px;
     line-height: 42px;
     border: none;
     border-radius: 6px;   
     color: #000000;
     font-weight: bold;
     text-decoration: none;
-
-    margin-left: 10px;
 }
 
 button:hover {
@@ -218,84 +217,47 @@ footer {
     color: rgb(51, 51, 51);
     background-color: transparent;
 }
-
 /* results */
 
 .result-columns-wrapper {
     display: flex;
     box-sizing: border-box;
 
-    margin: 0 auto;
-    margin-left: auto;
-    margin-right: auto;
-
-    padding: 20px 50px;
+    margin: 30px;
   }
   
 .result-column {
-    flex: 50%; 
+    flex: 50%;
     box-sizing: border-box;
+    border: black 1px;
+
     display: flex;
     flex-direction: column;
     /* align-items: center; */
-
   }
 
-  .result-column:last-child{
-      margin-left: 50px;
+  /* .card > .little-img {
+    max-width:50px;
+    max-height:75px;
+    margin-left: auto;
+    margin-right: auto;
+  } */
+
+  /* .card {
+      width: 50%;
+  } */
+
+
+  .card {
+    flex-direction: row;
+    align-items: center;
   }
 
-  .card-container {
-    display: flex;
-    flex-direction: column;
-
-    padding: 20px;
-
-    border-radius: 2%;
-    box-shadow: 0 14px 28px rgba(73, 92, 107, 0.25), 0 10px 10px rgba(0,0,0,0.22);
-
-    margin-bottom: 10px;
-  }
-
-  .card-container_top{
-      display: flex;
-      flex-direction: row;
-  }
-
-  .top-img {
-    border-radius: 2%;
-  }
-
-  .card-titles {
-    display: flex;
-    flex-direction: column;
-    justify-content: end;
-
-    margin-left: 20px;
-
+  .card-title {
     font-weight: bold;
   }
-
-  .h6,
-  .card-title,
-  .card-subtitle, 
-  .mb-2, 
-  .text-muted {
-    margin-bottom: 0;
-    padding: 0;
-  }
-
-  .card-subtitle {
-      margin-top: 5px;
-  }
-
-  .card-description {
-    margin-top: 20px;
-  }
-
-
-  /* .card img {
-    width: 30%;
+  .card img {
+    width: 30%; 
     border-top-right-radius: 0;
     border-bottom-left-radius: calc(0.25rem - 1px);
   }
@@ -317,13 +279,4 @@ footer {
     .card img {
       width: 40%;
     }
-  } */
-
-  #toppler-navbar {
-      align-items: center;
-      padding-left: 50px;
-  }
-
-  input {
-      margin: 0;
   }

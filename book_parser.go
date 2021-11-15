@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/url"
 	"strings"
+	"time"
 
 	"golang.org/x/net/html"
 
@@ -42,23 +43,27 @@ type BookHTML struct {
 
 func GetBooks(query string) ([]*Book, error) {
 
+	start := time.Now()
 	amazonURLs, err := createAmazonURLs(query)
 	if err != nil {
 		return nil, errors.New("failed to create Amazon URLs")
 	}
-
 	goodreadsURLs, err := createGoodreadsURLs(query)
 	if err != nil {
 		return nil, errors.New("failed to create Goodreads URLs")
 	}
-
 	URLs := append(amazonURLs, goodreadsURLs...)
+	fmt.Println("Creating URLs took:", time.Since(start))
+
+	start = time.Now()
 	HTMLs, err := getParsedHTMLs(URLs)
 	if err != nil {
 		return nil, errors.New("something bad happened during parsing")
 	}
+	fmt.Println("Total chromedp time:", time.Since(start))
 
 	var books []*Book
+	start = time.Now()
 	for _, HTML := range HTMLs {
 		var items []*Book
 
@@ -78,16 +83,18 @@ func GetBooks(query string) ([]*Book, error) {
 
 		books = append(books, items...)
 	}
+	fmt.Println("Parsing HTMLs by go took:", time.Since(start))
 
 	return books, nil
 }
 
 // Creates new Chrome instance - must be invoked once per search query
 func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
+	start := time.Now()
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
+		func(a *chromedp.ExecAllocator) { chromedp.Headless(a) },
 	)
-
 	// browser setup
 	browser, cancel := chromedp.NewExecAllocator(context.Background(), o...)
 	defer cancel()
@@ -95,12 +102,14 @@ func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	// start a tab
 	tab1, cancel := chromedp.NewContext(browser)
 	defer cancel()
+
 	if err := chromedp.Run(tab1); err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("Setup of chromedp:", time.Since(start))
+
 	var tabs []context.Context
 	tabs = append(tabs, tab1)
-
 	// start next tabs
 	for i := 0; i < len(urls)-1; i++ {
 		tab, cancel := chromedp.NewContext(tab1)
@@ -108,6 +117,7 @@ func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
 		defer cancel()
 	}
 
+	start = time.Now()
 	var parsedPages []*BookHTML
 	chParsedHTML := make(chan *BookHTML)
 	chIsFinished := make(chan bool)
@@ -124,6 +134,7 @@ func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
 			i++
 		}
 	}
+	fmt.Println("Getting all nodes async:", time.Since(start))
 
 	if len(parsedPages) < 1 {
 		return nil, errors.New("no roots where gathered")

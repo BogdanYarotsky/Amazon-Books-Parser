@@ -7,14 +7,24 @@
     <link rel="stylesheet" href="static/css/style.css" type="text/css">
 </head>
 <body>
-
+  <header>
+    <nav id="toppler-navbar"  class="navbar navbar-light bg-light justify-content-start">
+      <a class="navbar-brand">Toppler</a>
+      <form class="form-inline" action="/search" method="get">
+        <input class="form-control" type="text" name="q">
+        <button class="btn btn-outline-success my-2 my-sm-0" type="submit">New Search</button>
+      </form>
+    </nav>
+  </header>
+  <main>
     <div class="result-columns-wrapper">
-        <div class="result-column">
-            <!-- {{range .AmazonBooks}} -->
+      <div class="result-column">
+      <h3>Amazon results:</h2>
+            {{range .AmazonBooks}}
             <div class="card-container">
                 <div class="card-container_top">
                     <div class="card-container_img">
-                      <img class="top-img" src="/Amazon-Books-Parser/templates/static/images/cat.jpg" alt="Card image cap" width="50px" height="70px">
+                      <img class="top-img" src="{{ .ImgURL }}" alt="Card image cap" width="50px" height="70px">
                     </div>
 
                     <div class="card-titles">
@@ -28,28 +38,34 @@
                   <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
                   <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
                 </div>
-           
               </div>
-            <!-- {{end}} -->
-        </div>
-
-
+            {{end}}
+            </div>       
         <div class="result-column">
-            <!-- {{range .GoodreadsBooks}} -->
-            <div class="card">
-                <div class="image-own"><img class="card-img-top" src="{{ .ImgURL }}" alt="Card image cap"></div>
-                <div class="card-body">
-                  <h5 class="card-title">{{ .Title }}</h5>
-                  <h6 class="card-subtitle mb-2 text-muted">{{ .Author }}</h6>
-                  <p class="card-text">Average rating: {{ printf "%.1f" .Rating }}</p>
-                  <p class="card-text">Total reviews: {{ .Reviews }}</p>
-                  <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
-                  <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
-                </div>
+          <h3>Goodreads results:</h2>
+            {{range .GoodreadsBooks}}
+            <div class="card-container">
+              <div class="card-container_top">
+                  <div class="card-container_img">
+                    <img class="top-img" src="{{ .ImgURL }}" alt="Card image cap" width="50px" height="70px">
+                  </div>
+
+                  <div class="card-titles">
+                    <h5 class="card-title">{{ .Title }}</h5>
+                    <h6 class="card-subtitle text-muted">{{ .Author }}</h6>
+                  </div>
               </div>
-            <!-- {{end}} -->
+                
+              <div class="card-description">
+                <p class="card-text">Average rating: {{ printf "%.1f" .Rating }}<br>Total reviews: {{ .Reviews }}</p>
+                <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
+                <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
+              </div>
+            </div>
+            {{end}}
         </div>
     </div>
+  </main>
 </body>
 </html>
 
