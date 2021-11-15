@@ -10,23 +10,34 @@
 
     <div class="result-columns-wrapper">
         <div class="result-column">
-            {{range .AmazonBooks}}
-            <div class="card">
-                <img class="card-img-top" src="{{ .ImgURL }}" alt="Card image cap">
-                <div class="card-body">
-                  <h5 class="card-title">{{ .Title }}</h5>
-                  <h6 class="card-subtitle mb-2 text-muted">{{ .Author }}</h6>
+            <!-- {{range .AmazonBooks}} -->
+            <div class="card-container">
+                <div class="card-container_top">
+                    <div class="card-container_img">
+                      <img class="top-img" src="/Amazon-Books-Parser/templates/static/images/cat.jpg" alt="Card image cap" width="50px" height="70px">
+                    </div>
+
+                    <div class="card-titles">
+                      <h5 class="card-title">{{ .Title }}</h5>
+                      <h6 class="card-subtitle text-muted">{{ .Author }}</h6>
+                    </div>
+                </div>
+                  
+                <div class="card-description">
                   <p class="card-text">Average rating: {{ printf "%.1f" .Rating }}<br>Total reviews: {{ .Reviews }}</p>
                   <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
                   <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
                 </div>
+           
               </div>
-            {{end}}
+            <!-- {{end}} -->
         </div>
+
+
         <div class="result-column">
-            {{range .GoodreadsBooks}}
+            <!-- {{range .GoodreadsBooks}} -->
             <div class="card">
-                <img class="card-img-top img-thumbnail little-img" src="{{ .ImgURL }}" alt="Card image cap">
+                <div class="image-own"><img class="card-img-top" src="{{ .ImgURL }}" alt="Card image cap"></div>
                 <div class="card-body">
                   <h5 class="card-title">{{ .Title }}</h5>
                   <h6 class="card-subtitle mb-2 text-muted">{{ .Author }}</h6>
@@ -36,7 +47,7 @@
                   <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
                 </div>
               </div>
-            {{end}}
+            <!-- {{end}} -->
         </div>
     </div>
 </body>
