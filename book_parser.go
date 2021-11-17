@@ -56,7 +56,7 @@ func GetBooks(query string) ([]*Book, error) {
 	fmt.Println("Creating URLs took:", time.Since(start))
 
 	start = time.Now()
-	HTMLs, err := getParsedHTMLs(URLs)
+	HTMLs, err := getChromeParsedHTMLs(URLs)
 	if err != nil {
 		return nil, errors.New("something bad happened during parsing")
 	}
@@ -88,8 +88,19 @@ func GetBooks(query string) ([]*Book, error) {
 	return books, nil
 }
 
+func getGoParsedHTMLs(urls []string) ([]*BookHTML, error) {
+
+	var parsedPages []*BookHTML
+
+	if len(parsedPages) < 1 {
+		return nil, errors.New("no roots where gathered")
+	} else {
+		return parsedPages, nil
+	}
+}
+
 // Creates new Chrome instance - must be invoked once per search query
-func getParsedHTMLs(urls []string) ([]*BookHTML, error) {
+func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	start := time.Now()
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
