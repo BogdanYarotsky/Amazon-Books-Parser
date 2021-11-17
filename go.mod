@@ -1,6 +1,6 @@
+// +heroku goVersion go1.17
 module example.com/parser
 
-// +heroku goVersion go1.17
 go 1.17
 
 require (

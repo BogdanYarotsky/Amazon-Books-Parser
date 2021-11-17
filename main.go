@@ -19,7 +19,7 @@ type TopplerResult struct {
 var indexPath = regexp.MustCompile("/.")
 
 //var resultPath = regexp.MustCompile("^/(results)/([a-zA-Z0-9]+)$")
-var resultPath = regexp.MustCompile("^/(search\\?q)=([\\w\\+]+)$")
+var resultPath = regexp.MustCompile(`^/(search\?q)=([\w\+]+)$`)
 
 var templates = template.Must(template.ParseGlob("templates/*.html"))
 

@@ -88,17 +88,6 @@ func GetBooks(query string) ([]*Book, error) {
 	return books, nil
 }
 
-func getGoParsedHTMLs(urls []string) ([]*BookHTML, error) {
-
-	var parsedPages []*BookHTML
-
-	if len(parsedPages) < 1 {
-		return nil, errors.New("no roots where gathered")
-	} else {
-		return parsedPages, nil
-	}
-}
-
 // Creates new Chrome instance - must be invoked once per search query
 func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	start := time.Now()
@@ -134,7 +123,7 @@ func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	chIsFinished := make(chan bool)
 
 	for i, url := range urls {
-		go FetchAndParse(url, tabs[i], chParsedHTML, chIsFinished)
+		go chromeFetchAndParse(url, tabs[i], chParsedHTML, chIsFinished)
 	}
 
 	for i := 0; i < len(urls); {
@@ -154,7 +143,7 @@ func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	}
 }
 
-func FetchAndParse(page string, tab context.Context, chParsedHTML chan *BookHTML, chIsFinished chan bool) {
+func chromeFetchAndParse(page string, tab context.Context, chParsedHTML chan *BookHTML, chIsFinished chan bool) {
 	fmt.Println(page)
 
 	var HTML string
