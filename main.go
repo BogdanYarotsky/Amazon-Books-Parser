@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"strings"
 )
@@ -75,25 +76,14 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	fmt.Println("Serving on http://localhost:8080/")
+	port := os.Getenv("PORT")
+	if len(port) == 0 {
+		port = "8080"
+	}
+	port = ":" + port
+	fmt.Printf("Serving on http://localhost%s\n", port)
 	serveStaticFiles()
 	http.HandleFunc("/search", queryHandler)
 	http.HandleFunc("/", indexHandler)
-
-	log.Fatal(http.ListenAndServe(":8080", nil))
-	// will be moved to the method for page results
-
-	//var query string
-	//if len(os.Args) == 2 {
-	//	query = os.Args[1]
-	//}
-	//books, err := GetBooks(query)
-	//if err != nil {
-	//	panic(err)
-	//}
-	//fmt.Println("Amazon top:")
-	//PrintBooks(SortAmazonBooks(books)...)
-	//fmt.Println("Goodreads top:")
-	//PrintBooks(SortGoodreadsBooks(books)...)
-
+	log.Fatal(http.ListenAndServe(port, nil))
 }
