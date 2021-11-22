@@ -8,5 +8,6 @@ FROM chromedp/headless-shell:latest
 COPY --from=builder /build/parser /app/
 COPY templates/ /app/templates
 COPY static/ /app/static
+ENV GOPATH=/app
 WORKDIR /app
 ENTRYPOINT ["/app/parser"]
