@@ -1,7 +1,7 @@
 FROM golang:1.17.1-buster AS builder
 RUN mkdir /build
 ADD . /build/
-ENV GOPATH=/build
+ENV GOPATH=/
 WORKDIR /build
 RUN go build
 
