@@ -94,7 +94,9 @@ func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 	o := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.UserAgent(userAgent),
 		func(a *chromedp.ExecAllocator) { chromedp.Headless(a) },
+		func(a *chromedp.ExecAllocator) { chromedp.NoSandbox(a) },
 	)
+
 	// browser setup
 	browser, cancel := chromedp.NewExecAllocator(context.Background(), o...)
 	defer cancel()

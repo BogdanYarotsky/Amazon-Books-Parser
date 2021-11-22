@@ -77,6 +77,11 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	port := os.Getenv("PORT")
+
+	if port != "8080" {
+		os.Setenv("PORT", "8080")
+	}
+
 	if len(port) == 0 {
 		port = "8080"
 	}
