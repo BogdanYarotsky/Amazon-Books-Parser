@@ -3,7 +3,7 @@ RUN mkdir /build
 ADD . /build/
 ENV GOPATH=/
 WORKDIR /build
-RUN go build
+RUN go build -mod=readonly
 
 FROM chromedp/headless-shell:latest
 COPY --from=builder /build/parser /app/
