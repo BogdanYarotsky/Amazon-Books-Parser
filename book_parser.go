@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"net/url"
 	"strings"
 	"time"
@@ -39,6 +40,54 @@ type Book struct {
 type BookHTML struct {
 	Root   *html.Node
 	Source BookSource
+}
+
+type Chrome struct {
+	Tabs   []context.Context
+	Cancel []context.CancelFunc
+	Cookie http.Cookie
+}
+
+var chrome *Chrome
+
+func SpawnChrome() error {
+	chrome = new(Chrome)
+
+	o := append(chromedp.DefaultExecAllocatorOptions[:],
+		chromedp.UserAgent(userAgent),
+		func(a *chromedp.ExecAllocator) { chromedp.Headless(a) },
+		func(a *chromedp.ExecAllocator) { chromedp.NoSandbox(a) },
+	)
+	// browser setup
+	browser, cancel := chromedp.NewExecAllocator(context.Background(), o...)
+	chrome.Cancel = append(chrome.Cancel, cancel)
+
+	// start a tab
+	tab1, cancel := chromedp.NewContext(browser)
+	chrome.Cancel = append(chrome.Cancel, cancel)
+
+	if err := chromedp.Run(tab1); err != nil {
+		return err
+	}
+	chrome.Tabs = append(chrome.Tabs, tab1)
+
+	for i := 0; i < 5; i++ {
+		tab, cancel := chromedp.NewContext(tab1)
+		chrome.Tabs = append(chrome.Tabs, tab)
+		chrome.Cancel = append(chrome.Cancel, cancel)
+	}
+
+	log.Println("Chrome instance successfully created")
+	return nil
+}
+
+func CleanupChrome() {
+	if chrome != nil {
+		for i := len(chrome.Tabs) - 1; i >= 0; i-- {
+			cancel := chrome.Cancel[i]
+			cancel()
+		}
+	}
 }
 
 func GetBooks(query string) ([]*Book, error) {
@@ -90,42 +139,16 @@ func GetBooks(query string) ([]*Book, error) {
 
 // Creates new Chrome instance - must be invoked once per search query
 func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
-	start := time.Now()
-	o := append(chromedp.DefaultExecAllocatorOptions[:],
-		chromedp.UserAgent(userAgent),
-		func(a *chromedp.ExecAllocator) { chromedp.Headless(a) },
-		func(a *chromedp.ExecAllocator) { chromedp.NoSandbox(a) },
-	)
-
-	// browser setup
-	browser, cancel := chromedp.NewExecAllocator(context.Background(), o...)
-	defer cancel()
-
-	// start a tab
-	tab1, cancel := chromedp.NewContext(browser)
-	defer cancel()
-
-	if err := chromedp.Run(tab1); err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println("Setup of chromedp:", time.Since(start))
-
-	var tabs []context.Context
-	tabs = append(tabs, tab1)
-	// start next tabs
-	for i := 0; i < len(urls)-1; i++ {
-		tab, cancel := chromedp.NewContext(tab1)
-		tabs = append(tabs, tab)
-		defer cancel()
+	if chrome == nil {
+		SpawnChrome()
 	}
 
-	start = time.Now()
 	var parsedPages []*BookHTML
 	chParsedHTML := make(chan *BookHTML)
 	chIsFinished := make(chan bool)
 
 	for i, url := range urls {
-		go chromeFetchAndParse(url, tabs[i], chParsedHTML, chIsFinished)
+		go chromeFetchAndParse(url, chrome.Tabs[i], chParsedHTML, chIsFinished)
 	}
 
 	for i := 0; i < len(urls); {
@@ -136,7 +159,6 @@ func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 			i++
 		}
 	}
-	fmt.Println("Getting all nodes async:", time.Since(start))
 
 	if len(parsedPages) < 1 {
 		return nil, errors.New("no roots where gathered")
@@ -147,7 +169,6 @@ func getChromeParsedHTMLs(urls []string) ([]*BookHTML, error) {
 
 func chromeFetchAndParse(page string, tab context.Context, chParsedHTML chan *BookHTML, chIsFinished chan bool) {
 	fmt.Println(page)
-
 	var HTML string
 	if err := chromedp.Run(tab,
 		chromedp.Navigate(page),

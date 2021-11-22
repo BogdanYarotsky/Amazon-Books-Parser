@@ -8,6 +8,7 @@ import (
 	"os"
 	"regexp"
 	"strings"
+	"time"
 )
 
 type TopplerResult struct {
@@ -46,6 +47,8 @@ func indexHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func queryHandler(w http.ResponseWriter, r *http.Request) {
+	start := time.Now()
+
 	log.Println(r.URL.String())
 	m := resultPath.FindStringSubmatch(r.URL.String())
 	log.Println(m)
@@ -73,19 +76,21 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
+	fmt.Println("Total time to get response:", time.Since(start))
 }
 
 func main() {
-	port := os.Getenv("PORT")
-
-	if port != "8080" {
-		os.Setenv("PORT", "8080")
+	if err := SpawnChrome(); err != nil {
+		log.Fatal(err.Error())
 	}
+	defer CleanupChrome()
 
-	if len(port) == 0 {
+	port := os.Getenv("PORT")
+	if len(port) == 0 || port == "6666" {
 		port = "8080"
 	}
 	port = ":" + port
+
 	fmt.Printf("Serving on http://localhost%s\n", port)
 	serveStaticFiles()
 	http.HandleFunc("/search", queryHandler)
