@@ -1,6 +1,7 @@
 FROM golang:1.17.1-buster AS builder
 RUN mkdir /build
 ADD . /build/
+ENV GOPATH=/build
 WORKDIR /build
 RUN go build
 
@@ -8,6 +9,5 @@ FROM chromedp/headless-shell:latest
 COPY --from=builder /build/parser /app/
 COPY templates/ /app/templates
 COPY static/ /app/static
-ENV GOPATH=/app
 WORKDIR /app
 ENTRYPOINT ["/app/parser"]
