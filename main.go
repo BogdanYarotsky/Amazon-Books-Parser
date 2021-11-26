@@ -62,7 +62,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-
+	fmt.Println("Going to get books!!!")
 	books, err := GetBooks(strings.ReplaceAll(m[2], "+", " "))
 	if err != nil {
 		http.Error(w, err.Error(), 500)
@@ -70,6 +70,8 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	amazon, goodreads := SortAmazonBooks(books), SortGoodreadsBooks(books)
+
+	//markSamebooks(amazon, goodreads)
 
 	p := &TopplerResult{Title: "Hello Toppler", AmazonBooks: amazon, GoodreadsBooks: goodreads}
 	err = templates.ExecuteTemplate(w, "results.html", p)
@@ -80,11 +82,7 @@ func queryHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	if err := SpawnChrome(); err != nil {
-		log.Fatal(err.Error())
-	}
-	defer CleanupChrome()
-
+	fmt.Println("entered main")
 	port := os.Getenv("PORT")
 	if len(port) == 0 || port == "6666" {
 		port = "8080"

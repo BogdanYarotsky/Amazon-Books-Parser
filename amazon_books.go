@@ -3,11 +3,12 @@ package main
 import (
 	"errors"
 	"fmt"
-	"golang.org/x/net/html"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"golang.org/x/net/html"
 )
 
 const (
@@ -36,30 +37,49 @@ func FindAmazonBooks(node *html.Node) ([]*Book, error) {
 func SortAmazonBooks(books []*Book) []*Book {
 	// get rid of book less than 4.4
 	var betterBooks []*Book
+
 	for _, book := range books {
 		if book.Source == Amazon && book.Rating > 4.5 {
 			betterBooks = append(betterBooks, book)
 		}
 	}
 
-	// get those with most reviews
+	// sort by number of reviews
 	sort.Slice(betterBooks, func(i, j int) bool {
 		return betterBooks[i].Reviews > betterBooks[j].Reviews
 	})
 
+	// duplicates have same everything
+	var noDuplicatesBooks []*Book
+	var bookNameBuffer string
+	var currentReviewNumber int
+
+	for i := 0; i < len(betterBooks); i++ {
+		if currentReviewNumber != betterBooks[i].Reviews {
+			// new book - save reviews and name and add to "no duplicates"
+			noDuplicatesBooks = append(noDuplicatesBooks, betterBooks[i])
+			currentReviewNumber = betterBooks[i].Reviews
+			bookNameBuffer = betterBooks[i].Title
+		} else {
+			if bookNameBuffer != betterBooks[i].Title {
+				noDuplicatesBooks = append(noDuplicatesBooks, betterBooks[i])
+			}
+		}
+	}
+
 	var top []*Book
-	if len(betterBooks) >= 12 {
-		top = betterBooks[:12]
+	if len(noDuplicatesBooks) >= 12 {
+		top = noDuplicatesBooks[:12]
 	} else {
-		top = betterBooks
+		top = noDuplicatesBooks
 	}
 
 	// sort them by rating again, it's reasonable
 	sort.Slice(top, func(i, j int) bool {
 		if top[i].Rating != top[j].Rating {
-			return top[i].Rating > top[j].Rating
-		} else {
 			return top[i].Reviews > top[j].Reviews
+		} else {
+			return top[i].Rating > top[j].Rating
 		}
 
 	})

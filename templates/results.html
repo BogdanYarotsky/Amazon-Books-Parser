@@ -21,7 +21,7 @@
       <div class="result-column">
       <h3>Amazon results:</h2>
             {{range .AmazonBooks}}
-            <div class="card-container">
+            <div class="card-container {{if .Featured}} featured-card {{end}}">
                 <div class="card-container_top">
                     <div class="card-container_img">
                       <img class="top-img" src="{{ .ImgURL }}" alt="Card image cap" width="50px" height="70px">
@@ -31,12 +31,11 @@
                       <h5 class="card-title">{{ .Title }}</h5>
                       <h6 class="card-subtitle text-muted">{{ .Author }}</h6>
                     </div>
-                </div>
-                  
+                </div>                
                 <div class="card-description">
                   <p class="card-text">Average rating: {{ printf "%.1f" .Rating }}<br>Total reviews: {{ .Reviews }}</p>
-                  <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
-                  <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
+                  <a href="{{ .BookURL }}" class="card-link btn btn-primary btn-sm active" role="button" aria-pressed="true">Go to website</a>
+                  <a href="{{ .ReviewsURL }}" class="card-link btn btn-secondary btn-sm active" role="button" aria-pressed="true">Read reviews</a>
                 </div>
               </div>
             {{end}}
@@ -44,7 +43,7 @@
         <div class="result-column">
           <h3>Goodreads results:</h2>
             {{range .GoodreadsBooks}}
-            <div class="card-container">
+            <div class="card-container {{if .Featured }} featured-card {{end}}">
               <div class="card-container_top">
                   <div class="card-container_img">
                     <img class="top-img" src="{{ .ImgURL }}" alt="Card image cap" width="50px" height="70px">
@@ -58,8 +57,8 @@
                 
               <div class="card-description">
                 <p class="card-text">Average rating: {{ printf "%.1f" .Rating }}<br>Total reviews: {{ .Reviews }}</p>
-                <a href="{{ .BookURL }}" class="card-link">Go to shop</a>
-                <a href="{{ .ReviewsURL }}" class="card-link">Read reviews</a>
+                <a href="{{ .BookURL }}" class="card-link btn btn-primary btn-sm active" role="button" aria-pressed="true">Go to website</a>
+                <a href="{{ .ReviewsURL }}" class="card-link btn btn-secondary btn-sm active" role="button" aria-pressed="true">Read reviews</a>
               </div>
             </div>
             {{end}}
