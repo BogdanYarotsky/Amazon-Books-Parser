@@ -1,5 +1,5 @@
 # Amazon-Books-Parser
-#### Video Demo:  https://www.youtube.com/watch?v=thR75861Btw
+#### Video Demo:  https://youtu.be/a5dytBAK670
 #### Description: Web application to find best books based on your interests
 
 ## Try it yourself
