@@ -5,7 +5,7 @@
 ## Try it yourself
 
 ❗ [App hosted on Heroku](https://toppler.herokuapp.com/) ❗
-Please, note that I'm not yet aware of how to use background threads for responsive web UIs. Plus, Ajax seems like an advanced topic for me. For this reason - load time at the moment is about 40-50 seconds. Please, be patient - it will load eventually.
+Please, note that the front-end doesn't use background threads for responsive web UIs for now. For this reason - load time at the moment is about 40-50 seconds. Please, be patient - it will load eventually. Working to make it faster some time in the future.
 
 ## Application Features
 
